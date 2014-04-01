@@ -1,19 +1,19 @@
 CuXtomCam
 =========
 
-An open source camera for google glass. This is a an alternative to the default camera on Glass. This camera provides the default behaviour along with some extra special feature..
+An open source camera for google glass. This is a an alternative to the default camera on Glass. CuXtom Cam provides you the default behaviour along with some special feature..
 
-Special Fetures
+Special Features
 --------------
 
-* Using SWIPE Gestures to perform Zoom In and Zoom out.
+* Use SWIPE Gestures to perform Zoom In and Zoom out.
 * Use TAP Gesture to take Photo and end Video recording.
 * Take pictures, Record videos and save them in your own folder.
 * There is no default 10 seconds video duration. Video can be recorded as long as the user wants.
 
 Requirements
 --------------
-* You can either use the [jar file] or use the source code as library project, Although i prefer you use the jar by copying it into your libs folder
+You can either use the [jar file] or use the source code as library project, Although i prefer you use the jar by copying it into your libs folder
 
 
 How To Use
