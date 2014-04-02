@@ -112,9 +112,9 @@ License
     limitations under the License.
 
 
-For those who use this library don't forget to tell me how was it. 
+**For those who use this library don't forget to tell me how was it.**
 
-HAPPY CODING ^_^
+**HAPPY CODING ^_^**
 
 [sample]:https://github.com/krazykira/CuXtomCam-App
 [jar file]: https://drive.google.com/folderview?id=0BzlIeOU2kZD3Y09wdGxlWm5pYnM&usp=sharing
