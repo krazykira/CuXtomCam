@@ -6,11 +6,13 @@ import java.util.List;
 import com.glass.cuxtomcam.constants.CuxtomIntent.CAMERA_MODE;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.hardware.Camera;
+import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.OnZoomChangeListener;
 import android.hardware.Camera.Parameters;
-import android.hardware.Camera.Size;
 import android.util.Log;
+import android.view.OrientationEventListener;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Toast;
@@ -33,6 +35,7 @@ public class CameraPreview extends SurfaceView implements
 		this.cameraMode = cameraMode;
 		mHolder.addCallback(this);
 		mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+		mHolder.setKeepScreenOn(true);
 
 	}
 
@@ -86,7 +89,9 @@ public class CameraPreview extends SurfaceView implements
 			Camera.Size picturesize = pictureSizes.get(0);
 			mParameters.setPictureSize(picturesize.width, picturesize.height);
 			mParameters.setPreviewFpsRange(fps.get(5)[0], fps.get(5)[1]);
-			mParameters.setRotation(90);
+			// mParameters.setRotation(90);
+			onOrientationChanged(mParameters,
+					Configuration.ORIENTATION_LANDSCAPE);
 			mCamera.setParameters(mParameters);
 			mCamera.setPreviewDisplay(holder);
 			mCamera.startPreview();
@@ -95,6 +100,27 @@ public class CameraPreview extends SurfaceView implements
 		} catch (Exception e) {
 			Log.e(TAG, "Error starting camera preview--> " + e.getMessage());
 		}
+	}
+
+	/**
+	 * Possible Picture Orientation fix
+	 * 
+	 * @param param
+	 * @param orientation
+	 */
+	public void onOrientationChanged(Parameters param, int orientation) {
+		if (orientation == OrientationEventListener.ORIENTATION_UNKNOWN)
+			return;
+		CameraInfo info = new CameraInfo();
+		Camera.getCameraInfo(0, info);
+		orientation = (orientation + 45) / 90 * 90;
+		int rotation = 0;
+		if (info.facing == CameraInfo.CAMERA_FACING_FRONT) {
+			rotation = (info.orientation - orientation + 360) % 360;
+		} else { // back-facing camera
+			rotation = (info.orientation + orientation) % 360;
+		}
+		param.setRotation(rotation);
 	}
 
 	@Override
