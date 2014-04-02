@@ -134,11 +134,10 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		// Create an instance of Camera
 		mCamera = getCameraInstance();
 		// Create our Preview view and set it as the content of our activity.
-		mPreview = new CameraPreview(this, mCamera);
+		mPreview = new CameraPreview(this, mCamera,cameraMode);
 		mPreview.setCameraListener(this);
 		previewCameraLayout.addView(mPreview);
 		setContentView(previewCameraLayout);
-
 		mGestureDetector = new GestureDetector(this);
 		mGestureDetector.setBaseListener(this);
 

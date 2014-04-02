@@ -18,6 +18,7 @@
 
     <application
         android:allowBackup="true"
+        android:label="@string/lib_name"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" >
         <activity android:name="com.glass.cuxtomcam.CuxtomCamActivity" >
             <intent-filter>

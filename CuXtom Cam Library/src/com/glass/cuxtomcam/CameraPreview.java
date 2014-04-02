@@ -2,10 +2,14 @@ package com.glass.cuxtomcam;
 
 import java.io.IOException;
 import java.util.List;
+
+import com.glass.cuxtomcam.constants.CuxtomIntent.CAMERA_MODE;
+
 import android.content.Context;
 import android.hardware.Camera;
 import android.hardware.Camera.OnZoomChangeListener;
 import android.hardware.Camera.Parameters;
+import android.hardware.Camera.Size;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -19,13 +23,16 @@ public class CameraPreview extends SurfaceView implements
 	private static String TAG = "CAMERA PREVIEW";
 	private int zoomOffset;
 	private CameraListener mCallback;
+	private int cameraMode;
 
-	public CameraPreview(Context context, Camera camera) {
+	public CameraPreview(Context context, Camera camera, int cameraMode) {
 		super(context);
 		mContext = context;
 		mCamera = camera;
 		mHolder = getHolder();
+		this.cameraMode = cameraMode;
 		mHolder.addCallback(this);
+		mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
 	}
 
@@ -58,23 +65,27 @@ public class CameraPreview extends SurfaceView implements
 		// start preview with new settings
 		try {
 			Parameters mParameters = mCamera.getParameters();
-			List<Camera.Size> previewSizes = mParameters
-					.getSupportedPreviewSizes();
 			List<Camera.Size> pictureSizes = mParameters
 					.getSupportedPictureSizes();
 			List<int[]> fps = mParameters.getSupportedPreviewFpsRange();
 
+			// List<Camera.Size> previewSizes = mParameters
+			// .getSupportedPreviewSizes();
 			// // You need to choose the most appropriate previewSize for your
 			// app
 			// Camera.Size previewSize = previewSizes.get(1);// .... select one
 			// of
 			// // previewSizes here
-
+			if (cameraMode == CAMERA_MODE.PHOTO_MODE) {
+				// This is the default resolution of glass 640 x 360. It is also
+				// available in the preview size list. This should only be set
+				// when we want to take a picture otherwise we will use the
+				// default preview
+				mParameters.setPreviewSize(640, 360);
+			}
 			Camera.Size picturesize = pictureSizes.get(0);
-			mParameters.setPreviewSize(previewSizes.get(2).width,
-					previewSizes.get(2).height);
 			mParameters.setPictureSize(picturesize.width, picturesize.height);
-			mParameters.setPreviewFpsRange(fps.get(2)[0], fps.get(2)[1]);
+			mParameters.setPreviewFpsRange(fps.get(5)[0], fps.get(5)[1]);
 			mParameters.setRotation(90);
 			mCamera.setParameters(mParameters);
 			mCamera.setPreviewDisplay(holder);
@@ -88,16 +99,19 @@ public class CameraPreview extends SurfaceView implements
 
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
-		try {
-			CameraUtils.setCameraDisplayOrientation(mContext, 0, mCamera);
-			mCamera.setPreviewDisplay(holder);
-			mCamera.startPreview();
-			if (mCamera.getParameters().isZoomSupported()) {
-				mCamera.setZoomChangeListener(this);
-				zoomOffset = mCamera.getParameters().getMaxZoom() / 5;
+		if (mCamera != null) {
+			try {
+
+				CameraUtils.setCameraDisplayOrientation(mContext, 0, mCamera);
+				mCamera.setPreviewDisplay(holder);
+				mCamera.startPreview();
+				if (mCamera.getParameters().isZoomSupported()) {
+					mCamera.setZoomChangeListener(this);
+					zoomOffset = mCamera.getParameters().getMaxZoom() / 5;
+				}
+			} catch (IOException e) {
+				Log.e("Error starting preview", e.getMessage());
 			}
-		} catch (IOException e) {
-			Log.e("Error starting preview", e.getMessage());
 		}
 
 	}
