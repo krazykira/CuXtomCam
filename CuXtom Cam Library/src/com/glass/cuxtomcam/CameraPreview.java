@@ -34,7 +34,6 @@ public class CameraPreview extends SurfaceView implements
 		mHolder = getHolder();
 		this.cameraMode = cameraMode;
 		mHolder.addCallback(this);
-		mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 		mHolder.setKeepScreenOn(true);
 
 	}
@@ -44,8 +43,8 @@ public class CameraPreview extends SurfaceView implements
 	}
 
 	@Override
-	public void surfaceChanged(SurfaceHolder holder, int format, int width,
-			int height) {
+	public synchronized void surfaceChanged(SurfaceHolder holder, int format,
+			int width, int height) {
 		// If your preview can change or rotate, take care of those events here.
 		// Make sure to stop the preview before resizing or reformatting it.
 
@@ -54,52 +53,48 @@ public class CameraPreview extends SurfaceView implements
 			return;
 		}
 
-		// stop preview before making changes
-		try {
-			mCamera.stopPreview();
-		} catch (Exception e) {
-			// ignore: tried to stop a non-existent preview
-			Log.e(TAG, "Error Stopping camera preview--> " + e.getMessage());
-		}
+		if (cameraMode == CAMERA_MODE.PHOTO_MODE) {
 
-		// set preview size and make any resize, rotate or
-		// reformatting changes here
+			// stop preview before making changes
+			try {
+				Parameters mParameters = mCamera.getParameters();
+				mCamera.stopPreview();
+				List<Camera.Size> pictureSizes = mParameters
+						.getSupportedPictureSizes();
+				List<int[]> fps = mParameters.getSupportedPreviewFpsRange();
 
-		// start preview with new settings
-		try {
-			Parameters mParameters = mCamera.getParameters();
-			List<Camera.Size> pictureSizes = mParameters
-					.getSupportedPictureSizes();
-			List<int[]> fps = mParameters.getSupportedPreviewFpsRange();
-
-			// List<Camera.Size> previewSizes = mParameters
-			// .getSupportedPreviewSizes();
-			// // You need to choose the most appropriate previewSize for your
-			// app
-			// Camera.Size previewSize = previewSizes.get(1);// .... select one
-			// of
-			// // previewSizes here
-			if (cameraMode == CAMERA_MODE.PHOTO_MODE) {
-				// This is the default resolution of glass 640 x 360. It is also
-				// available in the preview size list. This should only be set
-				// when we want to take a picture otherwise we will use the
-				// default preview
-				mParameters.setPreviewSize(640, 360);
+				// List<Camera.Size> previewSizes = mParameters
+				// .getSupportedPreviewSizes();
+				// // You need to choose the most appropriate previewSize for
+				// your
+				// app
+				// Camera.Size previewSize = previewSizes.get(1);// .... select
+				// one
+				// of
+				// // previewSizes here
+					// This is the default resolution of glass 640 x 360. It is
+					// also
+					// available in the preview size list. This should only be
+					// set
+					// when we want to take a picture otherwise we will use the
+					// default preview
+//					mParameters.setPreviewSize(640, 360);
+				Camera.Size picturesize = pictureSizes.get(0);
+				mParameters.setPictureSize(picturesize.width,
+						picturesize.height);
+				mParameters.setPreviewFpsRange(fps.get(5)[0], fps.get(5)[1]);
+				// mParameters.setRotation(90);
+				onOrientationChanged(mParameters,
+						Configuration.ORIENTATION_LANDSCAPE);
+				mCamera.setParameters(mParameters);
+				mCamera.setPreviewDisplay(mHolder);
+				mCamera.startPreview();
+			} catch (Exception e) {
+				Log.e(TAG, "Error starting camera preview--> " + e.getMessage());
 			}
-			Camera.Size picturesize = pictureSizes.get(0);
-			mParameters.setPictureSize(picturesize.width, picturesize.height);
-			mParameters.setPreviewFpsRange(fps.get(5)[0], fps.get(5)[1]);
-			// mParameters.setRotation(90);
-			onOrientationChanged(mParameters,
-					Configuration.ORIENTATION_LANDSCAPE);
-			mCamera.setParameters(mParameters);
-			mCamera.setPreviewDisplay(mHolder);
-			mCamera.startPreview();
-			if (mCallback != null)
-				mCallback.onCameraInit();
-		} catch (Exception e) {
-			Log.e(TAG, "Error starting camera preview--> " + e.getMessage());
 		}
+		if (mCallback != null)
+			mCallback.onCameraInit();
 	}
 
 	/**
@@ -127,25 +122,23 @@ public class CameraPreview extends SurfaceView implements
 	public void surfaceCreated(SurfaceHolder holder) {
 		if (mCamera != null) {
 			try {
-
-//				CameraUtils.setCameraDisplayOrientation(mContext, 0, mCamera);
-				mCamera.setPreviewDisplay(holder);
-				mCamera.startPreview();
+				// CameraUtils.setCameraDisplayOrientation(mContext, 0,
+				// mCamera);
+				// onOrientationChanged(mCamera.getParameters(),
+				// Configuration.ORIENTATION_LANDSCAPE);
 				if (mCamera.getParameters().isZoomSupported()) {
 					mCamera.setZoomChangeListener(this);
 					zoomOffset = mCamera.getParameters().getMaxZoom() / 5;
 				}
+				mCamera.setPreviewDisplay(holder);
+				mCamera.startPreview();
+				mCamera.lock();
 			} catch (IOException e) {
 				Log.e("Error starting preview", e.getMessage());
 			}
+
 		}
 
-	}
-
-	public void startCamera() {
-		if (mCamera != null) {
-			mCamera.startPreview();
-		}
 	}
 
 	@Override
@@ -168,8 +161,8 @@ public class CameraPreview extends SurfaceView implements
 				mCamera.startSmoothZoom(zoomvalue);
 			}
 		} else {
-			Toast.makeText(mContext, "Zoom is not supported", Toast.LENGTH_LONG)
-					.show();
+			Toast.makeText(mContext, "Zoom In is not supported",
+					Toast.LENGTH_LONG).show();
 		}
 	}
 
@@ -181,8 +174,8 @@ public class CameraPreview extends SurfaceView implements
 				mCamera.startSmoothZoom(zoomvalue);
 			}
 		} else {
-			Toast.makeText(mContext, "Zoom is not supported", Toast.LENGTH_LONG)
-					.show();
+			Toast.makeText(mContext, "Zoom Out is not supported",
+					Toast.LENGTH_LONG).show();
 		}
 	}
 

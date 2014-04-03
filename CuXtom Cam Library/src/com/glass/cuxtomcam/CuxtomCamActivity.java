@@ -134,7 +134,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		// Create an instance of Camera
 		mCamera = getCameraInstance();
 		// Create our Preview view and set it as the content of our activity.
-		mPreview = new CameraPreview(this, mCamera,cameraMode);
+		mPreview = new CameraPreview(this, mCamera, cameraMode);
 		mPreview.setCameraListener(this);
 		previewCameraLayout.addView(mPreview);
 		setContentView(previewCameraLayout);
@@ -214,6 +214,9 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	@Override
 	public boolean onKeyUp(int keyCode, KeyEvent event) {
 		if (keyCode == KEY_SWIPE_DOWN) {
+			if (videofile != null) {
+				videofile.delete();
+			}
 			setResult(RESULT_CANCELED);
 			finish();
 			return true;
@@ -236,6 +239,15 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		@Override
 		public void onPictureTaken(byte[] data, Camera camera) {
 			try {
+				try {
+					mCamera.setPreviewDisplay(null);
+				} catch (java.io.IOException ioe) {
+					Log.d(TAG,
+							"IOException nullifying preview display: "
+									+ ioe.getMessage());
+				}
+				mCamera.stopPreview();
+				mCamera.unlock();
 				// Directories can be created but they cannot be seen when you
 				// connect to computer unless you access them from
 				// ddms in eclipse. There is some sort of special viewing
@@ -294,8 +306,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 			if (!dir.exists()) {
 				dir.mkdirs();
 			}
-			File f = new File(dir, fileName + ".mp4");
-			videofile = f;
+			videofile = new File(dir, fileName + ".mp4");
 			recorder.setCamera(mCamera);
 
 			// Step 2: Set sources
@@ -307,24 +318,24 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 					.get(CamcorderProfile.QUALITY_HIGH));
 
 			// Step 4: Set output file
-			recorder.setOutputFile(f.getAbsolutePath());
+			recorder.setOutputFile(videofile.getAbsolutePath());
 			// Step 5: Set the preview output
 			recorder.setPreviewDisplay(mPreview.getHolder().getSurface());
 			// Step 6: Prepare configured MediaRecorder
 			recorder.setMaxDuration(video_duration * 1000);
 			recorder.setOnInfoListener(new OnInfoListener() {
-				
+
 				@Override
 				public void onInfo(MediaRecorder mr, int what, int extra) {
-					if(what==MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED)
-					{
+					if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
 						Intent intent = new Intent();
-						intent.putExtra(CuxtomIntent.FILE_PATH, videofile.getPath());
+						intent.putExtra(CuxtomIntent.FILE_PATH,
+								videofile.getPath());
 						intent.putExtra(CuxtomIntent.FILE_TYPE, FILE_TYPE.VIDEO);
 						setResult(RESULT_OK, intent);
 						finish();
 					}
-					
+
 				}
 			});
 			recorder.prepare();
@@ -342,7 +353,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 			mCamera.lock(); // lock camera for later use
 		}
 	}
-
 
 	@Override
 	public void onCameraInit() {
