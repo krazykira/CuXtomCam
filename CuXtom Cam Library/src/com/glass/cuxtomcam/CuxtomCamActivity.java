@@ -159,7 +159,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	 */
 
 	@Override
-	public boolean onGesture(Gesture g) {
+	public synchronized boolean onGesture(Gesture g) {
 		switch (g) {
 		case TAP:
 			if (cameraMode == CAMERA_MODE.PHOTO_MODE) {

@@ -72,13 +72,13 @@ public class CameraPreview extends SurfaceView implements
 				// one
 				// of
 				// // previewSizes here
-					// This is the default resolution of glass 640 x 360. It is
-					// also
-					// available in the preview size list. This should only be
-					// set
-					// when we want to take a picture otherwise we will use the
-					// default preview
-//					mParameters.setPreviewSize(640, 360);
+				// This is the default resolution of glass 640 x 360. It is
+				// also
+				// available in the preview size list. This should only be
+				// set
+				// when we want to take a picture otherwise we will use the
+				// default preview
+				// mParameters.setPreviewSize(640, 360);
 				Camera.Size picturesize = pictureSizes.get(0);
 				mParameters.setPictureSize(picturesize.width,
 						picturesize.height);
@@ -180,7 +180,8 @@ public class CameraPreview extends SurfaceView implements
 	}
 
 	@Override
-	public void onZoomChange(int zoomValue, boolean stopped, Camera camera) {
+	public synchronized void onZoomChange(int zoomValue, boolean stopped,
+			Camera camera) {
 		// Log.i("Camera Zoom Value", zoomValue + "");
 
 	}
