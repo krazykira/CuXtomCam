@@ -27,6 +27,7 @@ public class CameraPreview extends SurfaceView implements
 	private int zoomOffset;
 	private CameraListener mCallback;
 	private int cameraMode;
+	private boolean zooming;
 
 	public CameraPreview(Context context, Camera camera, int cameraMode) {
 		super(context);
@@ -36,6 +37,7 @@ public class CameraPreview extends SurfaceView implements
 		this.cameraMode = cameraMode;
 		mHolder.addCallback(this);
 		mHolder.setKeepScreenOn(true);
+		zooming = false;
 
 	}
 
@@ -156,27 +158,21 @@ public class CameraPreview extends SurfaceView implements
 
 	public synchronized void zoomIn() {
 		if (mCamera != null && mCamera.getParameters().isZoomSupported()
-				&& mCamera.getParameters().isSmoothZoomSupported()) {
+				&& mCamera.getParameters().isSmoothZoomSupported() && !zooming) {
 			int zoomvalue = mCamera.getParameters().getZoom() + zoomOffset;
 			if (zoomvalue <= mCamera.getParameters().getMaxZoom()) {
 				mCamera.startSmoothZoom(zoomvalue);
 			}
-		} else {
-			Toast.makeText(mContext, "Zoom In is not supported",
-					Toast.LENGTH_LONG).show();
 		}
 	}
 
 	public synchronized void zoomOut() {
 		if (mCamera != null && mCamera.getParameters().isZoomSupported()
-				&& mCamera.getParameters().isSmoothZoomSupported()) {
+				&& mCamera.getParameters().isSmoothZoomSupported() && !zooming) {
 			int zoomvalue = mCamera.getParameters().getZoom() - zoomOffset;
 			if (zoomvalue >= 0) {
 				mCamera.startSmoothZoom(zoomvalue);
 			}
-		} else {
-			Toast.makeText(mContext, "Zoom Out is not supported",
-					Toast.LENGTH_LONG).show();
 		}
 	}
 
@@ -184,6 +180,7 @@ public class CameraPreview extends SurfaceView implements
 	public synchronized void onZoomChange(int zoomValue, boolean stopped,
 			Camera camera) {
 		// Log.i("Camera Zoom Value", zoomValue + "");
+		zooming = !stopped;
 
 	}
 
