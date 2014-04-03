@@ -93,7 +93,7 @@ public class CameraPreview extends SurfaceView implements
 			onOrientationChanged(mParameters,
 					Configuration.ORIENTATION_LANDSCAPE);
 			mCamera.setParameters(mParameters);
-			mCamera.setPreviewDisplay(holder);
+			mCamera.setPreviewDisplay(mHolder);
 			mCamera.startPreview();
 			if (mCallback != null)
 				mCallback.onCameraInit();
@@ -128,7 +128,7 @@ public class CameraPreview extends SurfaceView implements
 		if (mCamera != null) {
 			try {
 
-				CameraUtils.setCameraDisplayOrientation(mContext, 0, mCamera);
+//				CameraUtils.setCameraDisplayOrientation(mContext, 0, mCamera);
 				mCamera.setPreviewDisplay(holder);
 				mCamera.startPreview();
 				if (mCamera.getParameters().isZoomSupported()) {
