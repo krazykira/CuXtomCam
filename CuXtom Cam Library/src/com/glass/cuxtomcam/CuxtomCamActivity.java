@@ -11,7 +11,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import android.hardware.Camera;
-import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.PictureCallback;
 import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
@@ -25,7 +24,6 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.WindowManager;
-import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.TextView;
@@ -139,7 +137,8 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		previewCameraLayout = new RelativeLayout(this);
 		previewCameraLayout.setLayoutParams(new LayoutParams(
-				LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+				android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+				android.view.ViewGroup.LayoutParams.MATCH_PARENT));
 		// Create an instance of Camera
 		mCamera = getCameraInstance();
 		// Create our Preview view and set it as the content of our activity.
@@ -147,9 +146,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		mPreview.setCameraListener(this);
 		tv_recordingDuration = new TextView(this);
 		previewCameraLayout.addView(mPreview);
-		if (cameraMode == CAMERA_MODE.VIDEO_MODE) {
-			initVideoRecordingUI();
-		}
 		setContentView(previewCameraLayout);
 		mGestureDetector = new GestureDetector(this);
 		mGestureDetector.setBaseListener(this);
@@ -160,18 +156,20 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	 * initialize video recording UI with timer
 	 */
 	private void initVideoRecordingUI() {
-		LayoutParams rl_param = new LayoutParams(LayoutParams.WRAP_CONTENT,
-				LayoutParams.WRAP_CONTENT);
+		LayoutParams rl_param = new LayoutParams(
+				android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+				android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
 		rl_param.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
 		rl_param.addRule(RelativeLayout.CENTER_HORIZONTAL);
 
 		rl_param.addRule(RelativeLayout.ALIGN_BOTTOM, mPreview.getId());
 		rl_param.setMargins(0, 0, 0, 30);
 		tv_recordingDuration.setText("00:00");
-		tv_recordingDuration.setTextSize(25);
+		tv_recordingDuration.setTextSize(28);
 		tv_recordingDuration.setLayoutParams(rl_param);
 		previewCameraLayout.addView(tv_recordingDuration);
 		mExecutorService = Executors.newSingleThreadScheduledExecutor();
+		recordingDuration = 0;
 		mExecutorService.scheduleAtFixedRate(new Runnable() {
 
 			@Override
@@ -183,21 +181,31 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 						recordingDuration++;
 						final int seconds = recordingDuration % 60;
 						final int minutes = recordingDuration / 60;
+
 						if (seconds < 10) {
-							tv_recordingDuration.setText("0" + minutes + ":0"
-									+ seconds);
+							if (minutes < 10) {
+								tv_recordingDuration.setText("0" + minutes
+										+ ":0" + seconds);
+							} else {
+								tv_recordingDuration.setText(minutes + ":0"
+										+ seconds);
+							}
 
 						} else {
-							tv_recordingDuration.setText("" + minutes + ":"
-									+ seconds);
-
+							if (minutes < 10) {
+								tv_recordingDuration.setText("0" + minutes
+										+ ":" + seconds);
+							} else {
+								tv_recordingDuration.setText(minutes + ":"
+										+ seconds);
+							}
 						}
 
 					}
 				});
 
 			}
-		}, 0, 1, TimeUnit.SECONDS);
+		}, 1, 1, TimeUnit.SECONDS);
 	}
 
 	/**
@@ -220,19 +228,19 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		switch (g) {
 		case TAP:
 			if (cameraMode == CAMERA_MODE.PHOTO_MODE) {
-				String s = mCamera.getParameters().getFocusMode();
-				if (!s.equalsIgnoreCase("infinity")) {
-					mCamera.autoFocus(new AutoFocusCallback() {
-
-						@Override
-						public void onAutoFocus(boolean success, Camera camera) {
-							if (success)
-								camera.takePicture(null, null, mPictureCallback);
-						}
-					});
-				} else {
-					mCamera.takePicture(null, null, mPictureCallback);
-				}
+				// String s = mCamera.getParameters().getFocusMode();
+				// if (!s.equalsIgnoreCase("infinity")) {
+				// mCamera.autoFocus(new AutoFocusCallback() {
+				//
+				// @Override
+				// public void onAutoFocus(boolean success, Camera camera) {
+				// if (success)
+				// camera.takePicture(null, null, mPictureCallback);
+				// }
+				// });
+				// } else {
+				mCamera.takePicture(null, null, mPictureCallback);
+				// }
 			} else {
 				Intent intent = new Intent();
 				intent.putExtra(CuxtomIntent.FILE_PATH, videofile.getPath());
@@ -296,15 +304,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		@Override
 		public void onPictureTaken(byte[] data, Camera camera) {
 			try {
-				try {
-					mCamera.setPreviewDisplay(null);
-				} catch (java.io.IOException ioe) {
-					Log.d(TAG,
-							"IOException nullifying preview display: "
-									+ ioe.getMessage());
-				}
-				mCamera.stopPreview();
-				mCamera.unlock();
 				// Directories can be created but they cannot be seen when you
 				// connect to computer unless you access them from
 				// ddms in eclipse. There is some sort of special viewing
@@ -334,7 +333,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	};
 
 	/**
-	 * Start video recording
+	 * Start video recording by cleaning the old camera preview
 	 */
 	private void startVideoRecorder() {
 		// THIS IS NEEDED BECAUSE THE GLASS CURRENTLY THROWS AN ERROR OF
@@ -414,6 +413,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	@Override
 	public void onCameraInit() {
 		if (cameraMode == CAMERA_MODE.VIDEO_MODE) {
+			initVideoRecordingUI();
 			startVideoRecorder();
 		}
 

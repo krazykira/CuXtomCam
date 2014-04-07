@@ -7,7 +7,6 @@ import com.glass.cuxtomcam.constants.CuxtomIntent.CAMERA_MODE;
 
 import android.content.Context;
 import android.content.res.Configuration;
-import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.OnZoomChangeListener;
@@ -16,7 +15,6 @@ import android.util.Log;
 import android.view.OrientationEventListener;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.widget.Toast;
 
 public class CameraPreview extends SurfaceView implements
 		SurfaceHolder.Callback, OnZoomChangeListener {
@@ -61,7 +59,7 @@ public class CameraPreview extends SurfaceView implements
 			// stop preview before making changes
 			try {
 				mCamera.stopPreview();
-				mCamera.setPreviewDisplay(holder);
+				mCamera.setPreviewDisplay(mHolder);
 			} catch (Exception e) {
 				Log.e(TAG + " Error starting camera preview--> ",
 						e.getMessage());
