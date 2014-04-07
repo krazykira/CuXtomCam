@@ -6,6 +6,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.PictureCallback;
@@ -22,7 +26,9 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
-import android.view.ViewGroup.LayoutParams;
+import android.widget.RelativeLayout;
+import android.widget.RelativeLayout.LayoutParams;
+import android.widget.TextView;
 
 import com.glass.cuxtomcam.constants.CuxtomIntent;
 import com.glass.cuxtomcam.constants.CuxtomIntent.CAMERA_MODE;
@@ -38,9 +44,12 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	private final int KEY_SWIPE_DOWN = 4;
 	private Camera mCamera;
 	private CameraPreview mPreview;
-	private FrameLayout previewCameraLayout;
+	private RelativeLayout previewCameraLayout;
 	private GestureDetector mGestureDetector;
 	private MediaRecorder recorder;
+	private TextView tv_recordingDuration;
+	private int recordingDuration;
+	private ScheduledExecutorService mExecutorService;
 
 	// *****************************
 	// these values are set by the calling activity
@@ -128,7 +137,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	private void loadUI() {
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-		previewCameraLayout = new FrameLayout(this);
+		previewCameraLayout = new RelativeLayout(this);
 		previewCameraLayout.setLayoutParams(new LayoutParams(
 				LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 		// Create an instance of Camera
@@ -136,11 +145,59 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		// Create our Preview view and set it as the content of our activity.
 		mPreview = new CameraPreview(this, mCamera, cameraMode);
 		mPreview.setCameraListener(this);
+		tv_recordingDuration = new TextView(this);
 		previewCameraLayout.addView(mPreview);
+		if (cameraMode == CAMERA_MODE.VIDEO_MODE) {
+			initVideoRecordingUI();
+		}
 		setContentView(previewCameraLayout);
 		mGestureDetector = new GestureDetector(this);
 		mGestureDetector.setBaseListener(this);
 
+	}
+
+	/**
+	 * initialize video recording UI with timer
+	 */
+	private void initVideoRecordingUI() {
+		LayoutParams rl_param = new LayoutParams(LayoutParams.WRAP_CONTENT,
+				LayoutParams.WRAP_CONTENT);
+		rl_param.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+		rl_param.addRule(RelativeLayout.CENTER_HORIZONTAL);
+
+		rl_param.addRule(RelativeLayout.ALIGN_BOTTOM, mPreview.getId());
+		rl_param.setMargins(0, 0, 0, 30);
+		tv_recordingDuration.setText("00:00");
+		tv_recordingDuration.setTextSize(25);
+		tv_recordingDuration.setLayoutParams(rl_param);
+		previewCameraLayout.addView(tv_recordingDuration);
+		mExecutorService = Executors.newSingleThreadScheduledExecutor();
+		mExecutorService.scheduleAtFixedRate(new Runnable() {
+
+			@Override
+			public void run() {
+				runOnUiThread(new Runnable() {
+
+					@Override
+					public void run() {
+						recordingDuration++;
+						final int seconds = recordingDuration % 60;
+						final int minutes = recordingDuration / 60;
+						if (seconds < 10) {
+							tv_recordingDuration.setText("0" + minutes + ":0"
+									+ seconds);
+
+						} else {
+							tv_recordingDuration.setText("" + minutes + ":"
+									+ seconds);
+
+						}
+
+					}
+				});
+
+			}
+		}, 0, 1, TimeUnit.SECONDS);
 	}
 
 	/**
