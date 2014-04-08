@@ -6,7 +6,7 @@ An open source camera for google glass. This is a an alternative to the default 
 Special Features
 --------------
 
-* Use SWIPE Gestures to perform Zoom In and Zoom out.
+* Use SWIPE FORWARD and BACKWARD Gestures to perform Zoom In and Zoom out.
 * Use TAP Gesture to take Photo and end Video recording.
 * Take pictures, Record videos and save them in your own folder.
 * There is no default 10 seconds video duration. Video can be recorded as long as the user wants.
