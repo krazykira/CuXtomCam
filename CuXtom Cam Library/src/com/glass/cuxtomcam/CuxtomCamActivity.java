@@ -14,6 +14,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
+import android.media.MediaScannerConnection;
 import android.media.MediaRecorder.OnInfoListener;
 import android.os.Bundle;
 import android.os.Environment;
@@ -242,6 +243,12 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				mCamera.takePicture(null, null, mPictureCallback);
 				// }
 			} else {
+				/*
+				 * initiate media scan and put the new things into the path
+				 * array to make the scanner aware of the location and the files
+				 * you want to see
+				 */MediaScannerConnection.scanFile(CuxtomCamActivity.this,
+						new String[] { videofile.getPath() }, null, null);
 				Intent intent = new Intent();
 				intent.putExtra(CuxtomIntent.FILE_PATH, videofile.getPath());
 				intent.putExtra(CuxtomIntent.FILE_TYPE, FILE_TYPE.VIDEO);
@@ -317,6 +324,15 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				fos.write(data);
 				fos.flush();
 				fos.close();
+
+				// initiate media scan and put the new things into the path
+				// array to
+				// make the scanner aware of the location and the files you want
+				// to
+				// see
+				MediaScannerConnection.scanFile(CuxtomCamActivity.this,
+						new String[] { f.getPath() }, null, null);
+
 				Intent intent = new Intent();
 				intent.putExtra(CuxtomIntent.FILE_PATH, f.getPath());
 				intent.putExtra(CuxtomIntent.FILE_TYPE, FILE_TYPE.PHOTO);
@@ -384,6 +400,14 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				@Override
 				public void onInfo(MediaRecorder mr, int what, int extra) {
 					if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
+						/*
+						 * initiate media scan and put the new things into the
+						 * path array to make the scanner aware of the location
+						 * and the files you want to see
+						 */MediaScannerConnection.scanFile(
+								CuxtomCamActivity.this,
+								new String[] { videofile.getPath() }, null,
+								null);
 						Intent intent = new Intent();
 						intent.putExtra(CuxtomIntent.FILE_PATH,
 								videofile.getPath());
