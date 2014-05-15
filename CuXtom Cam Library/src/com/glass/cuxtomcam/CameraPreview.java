@@ -130,7 +130,7 @@ public class CameraPreview extends SurfaceView implements
 				// Configuration.ORIENTATION_LANDSCAPE);
 				if (mCamera.getParameters().isZoomSupported()) {
 					mCamera.setZoomChangeListener(this);
-					zoomOffset = mCamera.getParameters().getMaxZoom() / 5;
+					zoomOffset = mCamera.getParameters().getMaxZoom() / 4;
 				}
 				mCamera.setPreviewDisplay(holder);
 				mCamera.startPreview();

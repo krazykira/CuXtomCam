@@ -59,6 +59,8 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	private int video_duration;
 	private boolean enablezoom;
 	private File videofile;
+	private CameraOverlay mOverlay;
+	private SoundEffectPlayer mSoundEffects;
 
 	private Camera getCameraInstance() {
 		Camera c = null;
@@ -74,9 +76,17 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		mSoundEffects = new SoundEffectPlayer();
+		mSoundEffects.setup(this);
 		LoadExtras(getIntent());
 		loadUI();
 
+	}
+
+	@Override
+	protected void onDestroy() {
+		mSoundEffects.deconstruct();
+		super.onDestroy();
 	}
 
 	/**
@@ -146,7 +156,9 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		mPreview = new CameraPreview(this, mCamera, cameraMode);
 		mPreview.setCameraListener(this);
 		tv_recordingDuration = new TextView(this);
+		mOverlay = new CameraOverlay(this);
 		previewCameraLayout.addView(mPreview);
+		previewCameraLayout.addView(mOverlay);
 		setContentView(previewCameraLayout);
 		mGestureDetector = new GestureDetector(this);
 		mGestureDetector.setBaseListener(this);
@@ -240,7 +252,9 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				// }
 				// });
 				// } else {
+				mOverlay.setMode(CameraOverlay.Mode.FOCUS);
 				mCamera.takePicture(null, null, mPictureCallback);
+				mSoundEffects.shutter();
 				// }
 			} else {
 				/*
@@ -337,6 +351,8 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				intent.putExtra(CuxtomIntent.FILE_PATH, f.getPath());
 				intent.putExtra(CuxtomIntent.FILE_TYPE, FILE_TYPE.PHOTO);
 				setResult(RESULT_OK, intent);
+				mOverlay.setMode(CameraOverlay.Mode.PLAIN);
+
 			} catch (FileNotFoundException e) {
 				Log.e(TAG, "File not found: " + e.getMessage());
 				setResult(RESULT_CANCELED);
