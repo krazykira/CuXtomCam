@@ -13,8 +13,7 @@ Special Features
 
 Requirements
 --------------
-You can either use the [jar file] or use the source code as library project, Although i prefer you use the jar by copying it into your libs folder
-
+You can use cuXtom Cam library by adding it as library project. For a sample application see the [sample] app.
 
 How To Use
 --------------
@@ -117,4 +116,3 @@ License
 **HAPPY CODING ^_^**
 
 [sample]:https://github.com/krazykira/CuXtomCam-App
-[jar file]: https://drive.google.com/folderview?id=0BzlIeOU2kZD3Y09wdGxlWm5pYnM&usp=sharing
