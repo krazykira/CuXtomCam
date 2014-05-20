@@ -35,6 +35,7 @@ public class CameraPreview extends SurfaceView implements
 		this.cameraMode = cameraMode;
 		mHolder.addCallback(this);
 		mHolder.setKeepScreenOn(true);
+		mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 		zooming = false;
 
 	}

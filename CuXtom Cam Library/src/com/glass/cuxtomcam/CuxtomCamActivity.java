@@ -18,6 +18,7 @@ import android.media.MediaScannerConnection;
 import android.media.MediaRecorder.OnInfoListener;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -29,6 +30,7 @@ import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.TextView;
 
+import com.glass.cuxtomcam.CameraOverlay.Mode;
 import com.glass.cuxtomcam.constants.CuxtomIntent;
 import com.glass.cuxtomcam.constants.CuxtomIntent.CAMERA_MODE;
 import com.glass.cuxtomcam.constants.CuxtomIntent.FILE_TYPE;
@@ -80,7 +82,11 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		mSoundEffects.setup(this);
 		LoadExtras(getIntent());
 		loadUI();
+	}
 
+	@Override
+	protected void onResume() {
+		super.onResume();
 	}
 
 	@Override
@@ -241,22 +247,16 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		switch (g) {
 		case TAP:
 			if (cameraMode == CAMERA_MODE.PHOTO_MODE) {
-				// String s = mCamera.getParameters().getFocusMode();
-				// if (!s.equalsIgnoreCase("infinity")) {
-				// mCamera.autoFocus(new AutoFocusCallback() {
-				//
-				// @Override
-				// public void onAutoFocus(boolean success, Camera camera) {
-				// if (success)
-				// camera.takePicture(null, null, mPictureCallback);
-				// }
-				// });
-				// } else {
 				mOverlay.setMode(CameraOverlay.Mode.FOCUS);
 				mCamera.takePicture(null, null, mPictureCallback);
 				mSoundEffects.shutter();
-				// }
 			} else {
+				mExecutorService.shutdown();
+				recorder.stop();
+				mCamera.stopPreview();
+				mOverlay.setMode(Mode.PLAIN);
+				mSoundEffects.camcorderStop();
+				releaseMediaRecorder();
 				/*
 				 * initiate media scan and put the new things into the path
 				 * array to make the scanner aware of the location and the files
@@ -268,6 +268,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				intent.putExtra(CuxtomIntent.FILE_TYPE, FILE_TYPE.VIDEO);
 				setResult(RESULT_OK, intent);
 				finish();
+
 			}
 			return true;
 		case SWIPE_RIGHT:
@@ -312,9 +313,9 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 
 	@Override
 	protected void onPause() {
-		super.onPause();
 		releaseMediaRecorder(); // if you are using MediaRecorder, release it
 								// first
+		super.onPause();
 	}
 
 	/**
@@ -360,6 +361,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				Log.e(TAG, "Error accessing file: " + e.getMessage());
 				setResult(RESULT_CANCELED);
 			}
+			releaseMediaRecorder();
 			finish();
 		}
 	};
@@ -371,15 +373,16 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		// THIS IS NEEDED BECAUSE THE GLASS CURRENTLY THROWS AN ERROR OF
 		// "MediaRecorder start failed: -19"
 		// THIS WONT BE NEEDED INCASE OF PHONE AND TABLET
-		try {
-			mCamera.setPreviewDisplay(null);
-		} catch (java.io.IOException ioe) {
-			Log.d(TAG,
-					"IOException nullifying preview display: "
-							+ ioe.getMessage());
-		}
-		mCamera.stopPreview();
-		mCamera.unlock();
+		// This causes crash in glass kitkat version so remove it
+		// try {
+		// mCamera.setPreviewDisplay(null);
+		// } catch (java.io.IOException ioe) {
+		// Log.d(TAG,
+		// "IOException nullifying preview display: "
+		// + ioe.getMessage());
+		// }
+		// mCamera.stopPreview();
+		// mCamera.unlock();
 		recorder = new MediaRecorder();
 		// Let's initRecorder so we can record again
 		initRecorder();
@@ -394,6 +397,8 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 			if (!dir.exists()) {
 				dir.mkdirs();
 			}
+			mCamera.stopPreview();
+			mCamera.unlock();
 			videofile = new File(dir, fileName + ".mp4");
 			recorder.setCamera(mCamera);
 
@@ -416,6 +421,12 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				@Override
 				public void onInfo(MediaRecorder mr, int what, int extra) {
 					if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
+						mExecutorService.shutdown();
+						mCamera.stopPreview();
+						mOverlay.setMode(Mode.PLAIN);
+						mSoundEffects.camcorderStop();
+						releaseMediaRecorder();
+
 						/*
 						 * initiate media scan and put the new things into the
 						 * path array to make the scanner aware of the location
@@ -424,6 +435,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 								CuxtomCamActivity.this,
 								new String[] { videofile.getPath() }, null,
 								null);
+
 						Intent intent = new Intent();
 						intent.putExtra(CuxtomIntent.FILE_PATH,
 								videofile.getPath());
@@ -446,15 +458,23 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 			recorder.reset(); // clear recorder configuration
 			recorder.release(); // release the recorder object
 			recorder = null;
-			mCamera.lock(); // lock camera for later use
 		}
 	}
 
 	@Override
 	public void onCameraInit() {
 		if (cameraMode == CAMERA_MODE.VIDEO_MODE) {
-			initVideoRecordingUI();
-			startVideoRecorder();
+			mOverlay.setMode(Mode.RECORDING);
+			new Handler().postDelayed(new Runnable() {
+
+				@Override
+				public void run() {
+					mSoundEffects.camcorder();
+					startVideoRecorder();
+					initVideoRecordingUI();
+
+				}
+			}, 100);
 		}
 
 	}
