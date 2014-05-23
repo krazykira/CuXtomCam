@@ -250,10 +250,15 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				mCamera.takePicture(null, null, mPictureCallback);
 				mSoundEffects.shutter();
 			} else {
-				recorder.stop();
+				try {
+					recorder.stop();
+
+				} catch (Exception e) {
+					Log.e("error stopping", e.getMessage());
+				}
 				mExecutorService.shutdown();
-				mSoundEffects.camcorderStop();
 				mCamera.stopPreview();
+				mSoundEffects.camcorderStop();
 				mOverlay.setMode(Mode.PLAIN);
 				Intent intent = new Intent();
 				intent.putExtra(CuxtomIntent.FILE_PATH, videofile.getPath());
@@ -308,6 +313,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				videofile.delete();
 			}
 			setResult(RESULT_CANCELED);
+			releaseMediaRecorder();
 			finish();
 			return true;
 		}
@@ -424,8 +430,8 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				public void onInfo(MediaRecorder mr, int what, int extra) {
 					if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
 						mExecutorService.shutdown();
-						mSoundEffects.camcorderStop();
 						mCamera.stopPreview();
+						mSoundEffects.camcorderStop();
 						mOverlay.setMode(Mode.PLAIN);
 						Intent intent = new Intent();
 						intent.putExtra(CuxtomIntent.FILE_PATH,
@@ -448,7 +454,8 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 			recorder.prepare();
 			recorder.start();
 		} catch (Exception e) {
-			Log.e("Error Stating CuXtom Camera", e.getMessage());
+			Log.e("Error Starting CuXtom Camera for video recording",
+					e.getMessage());
 		}
 	}
 
@@ -457,6 +464,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 			recorder.reset(); // clear recorder configuration
 			recorder.release(); // release the recorder object
 			recorder = null;
+			mCamera = null;
 		}
 	}
 
@@ -468,8 +476,8 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 
 				@Override
 				public void run() {
-					mSoundEffects.camcorder();
 					startVideoRecorder();
+					mSoundEffects.camcorder();
 					initVideoRecordingUI();
 
 				}
