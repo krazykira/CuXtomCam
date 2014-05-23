@@ -20,7 +20,6 @@ public class CameraPreview extends SurfaceView implements
 		SurfaceHolder.Callback, OnZoomChangeListener {
 	private SurfaceHolder mHolder;
 	private Camera mCamera;
-	private Context mContext;
 	private static String TAG = "CAMERA PREVIEW";
 	private int zoomOffset;
 	private CameraListener mCallback;
@@ -29,7 +28,6 @@ public class CameraPreview extends SurfaceView implements
 
 	public CameraPreview(Context context, Camera camera, int cameraMode) {
 		super(context);
-		mContext = context;
 		mCamera = camera;
 		mHolder = getHolder();
 		this.cameraMode = cameraMode;

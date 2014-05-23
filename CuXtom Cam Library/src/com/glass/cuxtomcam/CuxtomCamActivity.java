@@ -16,6 +16,7 @@ import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
 import android.media.MediaScannerConnection;
 import android.media.MediaRecorder.OnInfoListener;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -39,7 +40,7 @@ import com.google.android.glass.touchpad.GestureDetector;
 import com.google.android.glass.touchpad.GestureDetector.BaseListener;
 
 public class CuxtomCamActivity extends Activity implements BaseListener,
-		CameraListener {
+		CameraListener, MediaScannerConnection.OnScanCompletedListener {
 
 	private final String TAG = "CAMERA ACTIVITY";
 	private final int KEY_SWIPE_DOWN = 4;
@@ -110,7 +111,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 					+ File.separator + Environment.DIRECTORY_PICTURES
 					+ File.separator + "CuXtomCamera";
 		}
-
 		// Check for CameraMode
 		if (intent.hasExtra(CuxtomIntent.CAMERA_MODE)) {
 			cameraMode = intent.getIntExtra(CuxtomIntent.CAMERA_MODE,
@@ -180,7 +180,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
 		rl_param.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
 		rl_param.addRule(RelativeLayout.CENTER_HORIZONTAL);
-
 		rl_param.addRule(RelativeLayout.ALIGN_BOTTOM, mPreview.getId());
 		rl_param.setMargins(0, 0, 0, 30);
 		tv_recordingDuration.setText("00:00");
@@ -251,23 +250,24 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				mCamera.takePicture(null, null, mPictureCallback);
 				mSoundEffects.shutter();
 			} else {
-				mExecutorService.shutdown();
 				recorder.stop();
+				mExecutorService.shutdown();
+				mSoundEffects.camcorderStop();
 				mCamera.stopPreview();
 				mOverlay.setMode(Mode.PLAIN);
-				mSoundEffects.camcorderStop();
-				releaseMediaRecorder();
-				/*
-				 * initiate media scan and put the new things into the path
-				 * array to make the scanner aware of the location and the files
-				 * you want to see
-				 */MediaScannerConnection.scanFile(CuxtomCamActivity.this,
-						new String[] { videofile.getPath() }, null, null);
 				Intent intent = new Intent();
 				intent.putExtra(CuxtomIntent.FILE_PATH, videofile.getPath());
 				intent.putExtra(CuxtomIntent.FILE_TYPE, FILE_TYPE.VIDEO);
 				setResult(RESULT_OK, intent);
-				finish();
+				/*
+				 * initiate media scan and put the new things into the path
+				 * array to make the scanner aware of the location and the files
+				 * you want to see
+				 */MediaScannerConnection.scanFile(getApplicationContext(),
+						new String[] { videofile.getPath() }, null,
+						CuxtomCamActivity.this);
+				// releaseMediaRecorder();
+				// finish();
 
 			}
 			return true;
@@ -302,6 +302,9 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	public boolean onKeyUp(int keyCode, KeyEvent event) {
 		if (keyCode == KEY_SWIPE_DOWN) {
 			if (videofile != null) {
+				mExecutorService.shutdown();
+				recorder.stop();
+				mCamera.stopPreview();
 				videofile.delete();
 			}
 			setResult(RESULT_CANCELED);
@@ -340,20 +343,19 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				fos.flush();
 				fos.close();
 
+				mOverlay.setMode(CameraOverlay.Mode.PLAIN);
+				Intent intent = new Intent();
+				intent.putExtra(CuxtomIntent.FILE_PATH, f.getPath());
+				intent.putExtra(CuxtomIntent.FILE_TYPE, FILE_TYPE.PHOTO);
+				setResult(RESULT_OK, intent);
 				// initiate media scan and put the new things into the path
 				// array to
 				// make the scanner aware of the location and the files you want
 				// to
 				// see
-				MediaScannerConnection.scanFile(CuxtomCamActivity.this,
-						new String[] { f.getPath() }, null, null);
-
-				Intent intent = new Intent();
-				intent.putExtra(CuxtomIntent.FILE_PATH, f.getPath());
-				intent.putExtra(CuxtomIntent.FILE_TYPE, FILE_TYPE.PHOTO);
-				setResult(RESULT_OK, intent);
-				mOverlay.setMode(CameraOverlay.Mode.PLAIN);
-
+				MediaScannerConnection.scanFile(getApplicationContext(),
+						new String[] { f.getPath() }, null,
+						CuxtomCamActivity.this);
 			} catch (FileNotFoundException e) {
 				Log.e(TAG, "File not found: " + e.getMessage());
 				setResult(RESULT_CANCELED);
@@ -361,8 +363,8 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				Log.e(TAG, "Error accessing file: " + e.getMessage());
 				setResult(RESULT_CANCELED);
 			}
-			releaseMediaRecorder();
-			finish();
+			// releaseMediaRecorder();
+			// finish();
 		}
 	};
 
@@ -422,11 +424,14 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				public void onInfo(MediaRecorder mr, int what, int extra) {
 					if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
 						mExecutorService.shutdown();
+						mSoundEffects.camcorderStop();
 						mCamera.stopPreview();
 						mOverlay.setMode(Mode.PLAIN);
-						mSoundEffects.camcorderStop();
-						releaseMediaRecorder();
-
+						Intent intent = new Intent();
+						intent.putExtra(CuxtomIntent.FILE_PATH,
+								videofile.getPath());
+						intent.putExtra(CuxtomIntent.FILE_TYPE, FILE_TYPE.VIDEO);
+						setResult(RESULT_OK, intent);
 						/*
 						 * initiate media scan and put the new things into the
 						 * path array to make the scanner aware of the location
@@ -434,14 +439,8 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 						 */MediaScannerConnection.scanFile(
 								CuxtomCamActivity.this,
 								new String[] { videofile.getPath() }, null,
-								null);
+								CuxtomCamActivity.this);
 
-						Intent intent = new Intent();
-						intent.putExtra(CuxtomIntent.FILE_PATH,
-								videofile.getPath());
-						intent.putExtra(CuxtomIntent.FILE_TYPE, FILE_TYPE.VIDEO);
-						setResult(RESULT_OK, intent);
-						finish();
 					}
 
 				}
@@ -474,8 +473,16 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 					initVideoRecordingUI();
 
 				}
-			}, 100);
+			}, 1000);
 		}
+
+	}
+
+	@Override
+	public void onScanCompleted(String path, Uri uri) {
+		releaseMediaRecorder();
+		System.gc();
+		CuxtomCamActivity.this.finish();
 
 	}
 
