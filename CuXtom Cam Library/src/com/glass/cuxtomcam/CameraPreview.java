@@ -120,7 +120,7 @@ public class CameraPreview extends SurfaceView implements
 	}
 
 	@Override
-	public void surfaceCreated(SurfaceHolder holder) {
+	public synchronized void surfaceCreated(SurfaceHolder holder) {
 		if (mCamera != null) {
 			try {
 				// CameraUtils.setCameraDisplayOrientation(mContext, 0,
@@ -150,6 +150,7 @@ public class CameraPreview extends SurfaceView implements
 			// unbind the camera from this object
 			mCamera = null;
 		}
+		mHolder=null;
 
 	}
 
