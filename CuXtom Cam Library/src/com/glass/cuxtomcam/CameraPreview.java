@@ -52,12 +52,17 @@ public class CameraPreview extends SurfaceView implements
 		// If your preview can change or rotate, take care of those events here.
 		// Make sure to stop the preview before resizing or reformatting it.
 
-		if (holder.getSurface() == null) {
+		if (cameraMode != CAMERA_MODE.PHOTO_MODE
+				&& mHolder.getSurface() == null) {
+			// preview surface does not exist
+			return;
+		} else if (holder.getSurface() == null) {
 			// preview surface does not exist
 			return;
 		}
 
 		if (cameraMode == CAMERA_MODE.PHOTO_MODE) {
+
 			try {
 				mCamera.stopPreview();
 				mCamera.setPreviewDisplay(mHolder);

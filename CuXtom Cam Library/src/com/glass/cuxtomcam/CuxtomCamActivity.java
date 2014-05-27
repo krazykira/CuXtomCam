@@ -151,6 +151,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 
 	@Override
 	protected void onDestroy() {
+		mSoundEffects.deconstruct();
 		super.onDestroy();
 	}
 
@@ -218,7 +219,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		// Create an instance of Camera
 		mCamera = getCameraInstance();
 		// Create our Preview view and set it as the content of our activity.
-		mPreview = new CameraPreview(this, mCamera, cameraMode,new Handler());
+		mPreview = new CameraPreview(this, mCamera, cameraMode, new Handler());
 		mPreview.setCameraListener(this);
 		mOverlay = new CameraOverlay(this);
 		previewCameraLayout.addView(mPreview);
@@ -281,14 +282,9 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				} catch (Exception e) {
 					Log.e("error stopping", e.getMessage());
 				}
+				mSoundEffects.camcorderStop();
 				mExecutorService.shutdown();
 				mCamera.stopPreview();
-				try {
-					mCamera.reconnect();
-				} catch (IOException e) {
-					Log.e("Error recnnecting camera", e.getMessage());
-				}
-				mSoundEffects.camcorderStop();
 				mOverlay.setMode(Mode.PLAIN);
 				Intent intent = new Intent();
 				intent.putExtra(CuxtomIntent.FILE_PATH, videofile.getPath());
@@ -301,8 +297,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				 */MediaScannerConnection.scanFile(getApplicationContext(),
 						new String[] { videofile.getPath() }, null,
 						CuxtomCamActivity.this);
-				// releaseMediaRecorder();
-				// finish();
 
 			}
 			return true;
@@ -343,8 +337,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				videofile.delete();
 			}
 			setResult(RESULT_CANCELED);
-			releaseMediaRecorder();
-			finish();
+			onScanCompleted(null, null);
 			return true;
 		}
 		return false;
@@ -399,8 +392,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				Log.e(TAG, "Error accessing file: " + e.getMessage());
 				setResult(RESULT_CANCELED);
 			}
-			// releaseMediaRecorder();
-			// finish();
 		}
 	};
 
@@ -457,14 +448,9 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				@Override
 				public void onInfo(MediaRecorder mr, int what, int extra) {
 					if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
+						mSoundEffects.camcorderStop();
 						mExecutorService.shutdown();
 						mCamera.stopPreview();
-						try {
-							mCamera.reconnect();
-						} catch (IOException e) {
-							Log.e("Error recnnecting camera", e.getMessage());
-						}
-						mSoundEffects.camcorderStop();
 						mOverlay.setMode(Mode.PLAIN);
 						Intent intent = new Intent();
 						intent.putExtra(CuxtomIntent.FILE_PATH,
@@ -485,19 +471,21 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				}
 			});
 			runOnUiThread(new Runnable() {
-				
+
 				@Override
 				public void run() {
-					
+
 					try {
+						mSoundEffects.camcorder();
 						recorder.prepare();
 						recorder.start();
 						mOverlay.setMode(Mode.RECORDING);
+
 					} catch (Exception e) {
 						Log.e("Error Starting CuXtom Camera for video recording",
 								e.getMessage());
 					}
-					
+
 				}
 			});
 		} catch (Exception e) {
@@ -530,7 +518,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 					mCamera.unlock();
 					startVideoRecorder();
 					Log.e(tag, "Start recorder");
-					mSoundEffects.camcorder();
 					runOnUiThread(new Runnable() {
 
 						@Override
@@ -551,7 +538,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	public void onScanCompleted(String path, Uri uri) {
 		tv_recordingDuration.removeCallbacks(recordingTimer);
 		releaseMediaRecorder();
-		mSoundEffects.deconstruct();
 		// previewCameraLayout.removeAllViewsInLayout();
 		CuxtomCamActivity.this.finish();
 		Log.e(tag, "Ended");
