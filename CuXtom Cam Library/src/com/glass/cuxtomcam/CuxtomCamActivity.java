@@ -19,6 +19,7 @@ import android.media.MediaRecorder.OnInfoListener;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -64,6 +65,60 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	private CameraOverlay mOverlay;
 	private SoundEffectPlayer mSoundEffects;
 	private final String tag = "CuxTomCam";
+	private Runnable recordingTimer = new Runnable() {
+
+		@Override
+		public synchronized void run() {
+			recordingDuration++;
+			final int seconds = recordingDuration % 60;
+			final int minutes = recordingDuration / 60;
+
+			if (seconds < 10) {
+				if (minutes < 10) {
+					tv_recordingDuration.post(new Runnable() {
+
+						@Override
+						public void run() {
+							tv_recordingDuration.setText("0" + minutes + ":0"
+									+ seconds);
+
+						}
+					});
+				} else {
+					tv_recordingDuration.post(new Runnable() {
+
+						@Override
+						public void run() {
+							tv_recordingDuration.setText(minutes + ":0"
+									+ seconds);
+						}
+					});
+				}
+
+			} else {
+				if (minutes < 10) {
+					tv_recordingDuration.post(new Runnable() {
+
+						@Override
+						public void run() {
+							tv_recordingDuration.setText("0" + minutes + ":"
+									+ seconds);
+						}
+					});
+				} else {
+					tv_recordingDuration.post(new Runnable() {
+
+						@Override
+						public void run() {
+							tv_recordingDuration.setText(minutes + ":"
+									+ seconds);
+						}
+					});
+				}
+			}
+
+		}
+	};
 
 	private Camera getCameraInstance() {
 		Camera c = null;
@@ -96,7 +151,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 
 	@Override
 	protected void onDestroy() {
-		mSoundEffects.deconstruct();
 		super.onDestroy();
 	}
 
@@ -148,6 +202,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		} else {
 			enablezoom = true;
 		}
+
 	}
 
 	/**
@@ -163,13 +218,13 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		// Create an instance of Camera
 		mCamera = getCameraInstance();
 		// Create our Preview view and set it as the content of our activity.
-		mPreview = new CameraPreview(this, mCamera, cameraMode);
+		mPreview = new CameraPreview(this, mCamera, cameraMode,new Handler());
 		mPreview.setCameraListener(this);
-		tv_recordingDuration = new TextView(this);
 		mOverlay = new CameraOverlay(this);
 		previewCameraLayout.addView(mPreview);
 		previewCameraLayout.addView(mOverlay);
 		setContentView(previewCameraLayout);
+		tv_recordingDuration = new TextView(this);
 		mGestureDetector = new GestureDetector(this);
 		mGestureDetector.setBaseListener(this);
 
@@ -192,42 +247,8 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		previewCameraLayout.addView(tv_recordingDuration);
 		mExecutorService = Executors.newSingleThreadScheduledExecutor();
 		recordingDuration = 0;
-		mExecutorService.scheduleAtFixedRate(new Runnable() {
-
-			@Override
-			public void run() {
-				runOnUiThread(new Runnable() {
-
-					@Override
-					public void run() {
-						recordingDuration++;
-						final int seconds = recordingDuration % 60;
-						final int minutes = recordingDuration / 60;
-
-						if (seconds < 10) {
-							if (minutes < 10) {
-								tv_recordingDuration.setText("0" + minutes
-										+ ":0" + seconds);
-							} else {
-								tv_recordingDuration.setText(minutes + ":0"
-										+ seconds);
-							}
-
-						} else {
-							if (minutes < 10) {
-								tv_recordingDuration.setText("0" + minutes
-										+ ":" + seconds);
-							} else {
-								tv_recordingDuration.setText(minutes + ":"
-										+ seconds);
-							}
-						}
-
-					}
-				});
-
-			}
-		}, 1, 1, TimeUnit.SECONDS);
+		mExecutorService.scheduleAtFixedRate(recordingTimer, 1, 1,
+				TimeUnit.SECONDS);
 	}
 
 	/**
@@ -463,9 +484,22 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 
 				}
 			});
-			recorder.prepare();
-			recorder.start();
-			mOverlay.setMode(Mode.RECORDING);
+			runOnUiThread(new Runnable() {
+				
+				@Override
+				public void run() {
+					
+					try {
+						recorder.prepare();
+						recorder.start();
+						mOverlay.setMode(Mode.RECORDING);
+					} catch (Exception e) {
+						Log.e("Error Starting CuXtom Camera for video recording",
+								e.getMessage());
+					}
+					
+				}
+			});
 		} catch (Exception e) {
 			Log.e("Error Starting CuXtom Camera for video recording",
 					e.getMessage());
@@ -487,7 +521,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		Log.e(tag, "onCameraInit");
 		if (cameraMode == CAMERA_MODE.VIDEO_MODE) {
 			Log.e(tag, "As VIDEO_MODE");
-			runOnUiThread(new Runnable() {
+			new Thread(new Runnable() {
 
 				@Override
 				public void run() {
@@ -497,21 +531,29 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 					startVideoRecorder();
 					Log.e(tag, "Start recorder");
 					mSoundEffects.camcorder();
-					initVideoRecordingUI();
-					Log.e(tag, "Recorder Started");
+					runOnUiThread(new Runnable() {
+
+						@Override
+						public void run() {
+							initVideoRecordingUI();
+							Log.e(tag, "Recorder Started");
+						}
+					});
 
 				}
-			});
+			}).start();
+			;
 		}
 
 	}
 
 	@Override
 	public void onScanCompleted(String path, Uri uri) {
+		tv_recordingDuration.removeCallbacks(recordingTimer);
 		releaseMediaRecorder();
-		previewCameraLayout.removeAllViewsInLayout();
+		mSoundEffects.deconstruct();
+		// previewCameraLayout.removeAllViewsInLayout();
 		CuxtomCamActivity.this.finish();
-		System.gc();
 		Log.e(tag, "Ended");
 	}
 

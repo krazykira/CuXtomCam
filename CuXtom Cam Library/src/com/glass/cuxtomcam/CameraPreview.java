@@ -11,6 +11,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.OnZoomChangeListener;
 import android.hardware.Camera.Parameters;
+import android.os.Handler;
 import android.util.Log;
 import android.view.OrientationEventListener;
 import android.view.SurfaceHolder;
@@ -25,9 +26,12 @@ public class CameraPreview extends SurfaceView implements
 	private CameraListener mCallback;
 	private int cameraMode;
 	private boolean zooming;
+	private Handler mHandler;
 
-	public CameraPreview(Context context, Camera camera, int cameraMode) {
+	public CameraPreview(Context context, Camera camera, int cameraMode,
+			Handler mHandler) {
 		super(context);
+		this.mHandler = mHandler;
 		mCamera = camera;
 		mHolder = getHolder();
 		this.cameraMode = cameraMode;
@@ -48,14 +52,12 @@ public class CameraPreview extends SurfaceView implements
 		// If your preview can change or rotate, take care of those events here.
 		// Make sure to stop the preview before resizing or reformatting it.
 
-		if (mHolder.getSurface() == null) {
+		if (holder.getSurface() == null) {
 			// preview surface does not exist
 			return;
 		}
 
 		if (cameraMode == CAMERA_MODE.PHOTO_MODE) {
-
-			// stop preview before making changes
 			try {
 				mCamera.stopPreview();
 				mCamera.setPreviewDisplay(mHolder);
@@ -63,35 +65,54 @@ public class CameraPreview extends SurfaceView implements
 				Log.e(TAG + " Error starting camera preview--> ",
 						e.getMessage());
 			}
-			Parameters mParameters = mCamera.getParameters();
-			List<Camera.Size> pictureSizes = mParameters
-					.getSupportedPictureSizes();
-			List<int[]> fps = mParameters.getSupportedPreviewFpsRange();
+			new Thread(new Runnable() {
 
-			// List<Camera.Size> previewSizes = mParameters
-			// .getSupportedPreviewSizes();
-			// // You need to choose the most appropriate previewSize for
-			// your
-			// app
-			// Camera.Size previewSize = previewSizes.get(1);// .... select
-			// one
-			// of
-			// // previewSizes here
-			// This is the default resolution of glass 640 x 360. It is
-			// also
-			// available in the preview size list. This should only be
-			// set
-			// when we want to take a picture otherwise we will use the
-			// default preview
-			// mParameters.setPreviewSize(640, 360);
-			Camera.Size picturesize = pictureSizes.get(0);
-			mParameters.setPictureSize(picturesize.width, picturesize.height);
-			mParameters.setPreviewFpsRange(fps.get(5)[0], fps.get(5)[1]);
-			// mParameters.setRotation(90);
-			onOrientationChanged(mParameters,
-					Configuration.ORIENTATION_LANDSCAPE);
-			mCamera.setParameters(mParameters);
-			mCamera.startPreview();
+				@Override
+				public void run() {
+					// stop preview before making changes
+
+					Parameters mParameters = mCamera.getParameters();
+					List<Camera.Size> pictureSizes = mParameters
+							.getSupportedPictureSizes();
+					List<int[]> fps = mParameters.getSupportedPreviewFpsRange();
+
+					// List<Camera.Size> previewSizes = mParameters
+					// .getSupportedPreviewSizes();
+					// // You need to choose the most appropriate previewSize
+					// for
+					// your
+					// app
+					// Camera.Size previewSize = previewSizes.get(1);// ....
+					// select
+					// one
+					// of
+					// // previewSizes here
+					// This is the default resolution of glass 640 x 360. It is
+					// also
+					// available in the preview size list. This should only be
+					// set
+					// when we want to take a picture otherwise we will use the
+					// default preview
+					// mParameters.setPreviewSize(640, 360);
+					Camera.Size picturesize = pictureSizes.get(0);
+					mParameters.setPictureSize(picturesize.width,
+							picturesize.height);
+					mParameters.setPreviewFpsRange(fps.get(5)[0], fps.get(5)[1]);
+					// mParameters.setRotation(90);
+					onOrientationChanged(mParameters,
+							Configuration.ORIENTATION_LANDSCAPE);
+					mCamera.setParameters(mParameters);
+					mHandler.post(new Runnable() {
+
+						@Override
+						public void run() {
+							mCamera.startPreview();
+
+						}
+					});
+
+				}
+			}).start();
 
 		}
 		if (mCallback != null)
@@ -150,7 +171,7 @@ public class CameraPreview extends SurfaceView implements
 			// unbind the camera from this object
 			mCamera = null;
 		}
-		mHolder=null;
+		mHolder = null;
 
 	}
 
