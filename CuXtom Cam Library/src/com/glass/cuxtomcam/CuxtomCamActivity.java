@@ -427,6 +427,9 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				dir.mkdirs();
 			}
 			videofile = new File(dir, fileName + ".mp4");
+			
+			// Step 1: Unlock camera
+			mCamera.unlock();
 			recorder.setCamera(mCamera);
 
 			// Step 2: Set sources
