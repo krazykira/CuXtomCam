@@ -162,38 +162,41 @@ public class CuxtomCamActivity extends Activity implements BaseListener, CameraL
 	 *            containing extras
 	 */
 	private void loadExtras(Intent intent) {
-		// check for folder path where pictures will be saved
-		if (intent.hasExtra(CuxtomIntent.FOLDER_PATH)) {
-			folderPath = intent.getStringExtra(CuxtomIntent.FOLDER_PATH);
-			createSubDirectory();
-		} else {
-			folderPath = Environment.getExternalStorageDirectory() + File.separator + Environment.DIRECTORY_PICTURES
-					+ File.separator + DEFAULT_DIRECTORY;
-			createSubDirectory();
-		}
 		// Check for CameraMode
 		if (intent.hasExtra(CuxtomIntent.CAMERA_MODE)) {
 			cameraMode = intent.getIntExtra(CuxtomIntent.CAMERA_MODE, CAMERA_MODE.PHOTO_MODE);
 		} else {
 			cameraMode = CAMERA_MODE.PHOTO_MODE;
 		}
+
+		// check for folder path where pictures will be saved
+		if (intent.hasExtra(CuxtomIntent.FOLDER_PATH)) {
+			folderPath = intent.getStringExtra(CuxtomIntent.FOLDER_PATH);
+		} else {
+			folderPath = Environment.getExternalStorageDirectory() + File.separator + Environment.DIRECTORY_PICTURES
+					+ File.separator + DEFAULT_DIRECTORY;
+			createSubDirectory();
+		}
+
 		// Check for FileName
 		if (intent.hasExtra(CuxtomIntent.FILE_NAME)) {
 			fileName = intent.getStringExtra(CuxtomIntent.FILE_NAME);
 		} else {
 			String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 			if (cameraMode == CAMERA_MODE.PHOTO_MODE) {
-				fileName = "pic" + timeStamp;
+				fileName = "pic_" + timeStamp;
 			} else {
-				fileName = "vid" + timeStamp;
+				fileName = "vid_" + timeStamp;
 			}
 		}
+
 		// Check for video duration
 		if (cameraMode == CAMERA_MODE.VIDEO_MODE && intent.hasExtra(CuxtomIntent.VIDEO_DURATION)) {
 			video_duration = intent.getIntExtra(CuxtomIntent.VIDEO_DURATION, 3600);
 		} else {
 			video_duration = 3600;
 		}
+
 		// check whether zoom functionailty should be enabled
 		if (intent.hasExtra(CuxtomIntent.ENABLE_ZOOM)) {
 			enablezoom = intent.getBooleanExtra(CuxtomIntent.ENABLE_ZOOM, true);
@@ -207,6 +210,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener, CameraL
 	 * Create a sub directory to save photos and videos
 	 */
 	private void createSubDirectory() {
+
 		if (cameraMode == CAMERA_MODE.VIDEO_MODE) {
 			folderPath = folderPath + File.separator + VIDEO_DIRECTORY;
 		} else {
@@ -215,7 +219,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener, CameraL
 	}
 
 	/**
-	 * Load UI according to the seetings
+	 * Load UI according to the settings provided by calling activity
 	 */
 	private void loadUI() {
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
