@@ -102,7 +102,8 @@ public class CameraPreview extends SurfaceView implements
 					Camera.Size picturesize = pictureSizes.get(0);
 					mParameters.setPictureSize(picturesize.width,
 							picturesize.height);
-					mParameters.setPreviewFpsRange(fps.get(5)[0], fps.get(5)[1]);
+//					Uncomment if there is issue during preview
+//					mParameters.setPreviewFpsRange(fps.get(5)[0], fps.get(5)[1]);
 					// mParameters.setRotation(90);
 					onOrientationChanged(mParameters,
 							Configuration.ORIENTATION_LANDSCAPE);
