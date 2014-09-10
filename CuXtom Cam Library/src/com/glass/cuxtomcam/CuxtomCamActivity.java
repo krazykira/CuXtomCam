@@ -137,7 +137,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener, CameraL
 		Log.e(tag, "Oncreate()");
 		mSoundEffects = new SoundEffectPlayer();
 		mSoundEffects.setup(this);
-		LoadExtras(getIntent());
+		loadExtras(getIntent());
 		Log.e(tag, "Loading extras completed");
 		loadUI();
 		Log.e(tag, "Loading UI completed");
@@ -161,10 +161,11 @@ public class CuxtomCamActivity extends Activity implements BaseListener, CameraL
 	 * @param intent
 	 *            containing extras
 	 */
-	private void LoadExtras(Intent intent) {
+	private void loadExtras(Intent intent) {
 		// check for folder path where pictures will be saved
 		if (intent.hasExtra(CuxtomIntent.FOLDER_PATH)) {
 			folderPath = intent.getStringExtra(CuxtomIntent.FOLDER_PATH);
+			createSubDirectory();
 		} else {
 			folderPath = Environment.getExternalStorageDirectory() + File.separator + Environment.DIRECTORY_PICTURES
 					+ File.separator + DEFAULT_DIRECTORY;
@@ -206,10 +207,10 @@ public class CuxtomCamActivity extends Activity implements BaseListener, CameraL
 	 * Create a sub directory to save photos and videos
 	 */
 	private void createSubDirectory() {
-		if (cameraMode == CAMERA_MODE.PHOTO_MODE) {
-			folderPath = folderPath + File.separator + PHOTO_DIRECTORY;
-		} else {
+		if (cameraMode == CAMERA_MODE.VIDEO_MODE) {
 			folderPath = folderPath + File.separator + VIDEO_DIRECTORY;
+		} else {
+			folderPath = folderPath + File.separator + PHOTO_DIRECTORY;
 		}
 	}
 
