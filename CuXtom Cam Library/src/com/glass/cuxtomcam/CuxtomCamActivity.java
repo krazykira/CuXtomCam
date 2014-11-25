@@ -273,7 +273,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener, CameraL
 	}
 
 	/**
-	 * Handle glass tap gestures
+	 * Handle Glass Swipe and Tap Gestures
 	 */
 
 	@Override
@@ -312,7 +312,15 @@ public class CuxtomCamActivity extends Activity implements BaseListener, CameraL
 			if (enablezoom)
 				mPreview.zoomIn();
 			return true;
+		case TWO_SWIPE_RIGHT:
+			if (enablezoom)
+				mPreview.zoomIn();
+			return true;
 		case SWIPE_LEFT:
+			if (enablezoom)
+				mPreview.zoomOut();
+			return true;
+		case TWO_SWIPE_LEFT:
 			if (enablezoom)
 				mPreview.zoomOut();
 			return true;
