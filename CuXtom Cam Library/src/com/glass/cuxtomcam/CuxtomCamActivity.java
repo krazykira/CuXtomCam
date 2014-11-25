@@ -324,19 +324,27 @@ public class CuxtomCamActivity extends Activity implements BaseListener, CameraL
 			if (enablezoom)
 				mPreview.zoomOut();
 			return true;
+		case SWIPE_DOWN:
+			onBackPressed();
+			return true;
 		default:
 			return false;
 		}
 	}
 
 	/**
-	 * Ignore any key that is pressed
+	 * Ignore any key that is pressed. Just handle camera key
 	 */
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		if (keyCode == KeyEvent.KEYCODE_CAMERA)
+		if (keyCode == KeyEvent.KEYCODE_CAMERA) {
+			if (cameraMode == CAMERA_MODE.PHOTO_MODE) {
+				mOverlay.setMode(CameraOverlay.Mode.FOCUS);
+				mCamera.takePicture(null, null, mPictureCallback);
+				mSoundEffects.shutter();
+			}
 			return true;
-		else
+		} else
 			return false;
 	}
 
@@ -354,7 +362,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener, CameraL
 			}
 			setResult(RESULT_CANCELED);
 			onScanCompleted(null, null);
-			return true;
+			super.onKeyUp(keyCode, event);
 		}
 		return false;
 	}
