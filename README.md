@@ -11,6 +11,12 @@ Special Features
 * Take pictures, Record videos and save them in your own folder on Glass.
 * There is no default 10 seconds video duration. Video can be recorded as long as the user wants. if user doesn't specify then default video recording length is 1 hour.
 
+
+CuXtom Cam Glassware
+--------------
+Want to see CuXtomCam in action? Then check out [GoogleGlass Glassware] that is made using CuxtomCam library
+
+
 Requirements
 --------------
 You can use cuXtom Cam library by adding it as library project. For a sample application see the [sample] app.
@@ -116,3 +122,5 @@ License
 **HAPPY CODING ^_^**
 
 [sample]:https://github.com/krazykira/CuXtomCam-App
+[this Google Glass Glassware]:https://glass.google.com/glassware/18006467403015279235
+
