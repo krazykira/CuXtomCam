@@ -14,7 +14,7 @@ Special Features
 
 CuXtom Cam Glassware
 --------------
-Want to see CuXtomCam in action? Then check out [GoogleGlass Glassware] that is made using CuxtomCam library
+Want to see CuXtomCam in action? Then check out [Google Glass Glassware] that is made using CuxtomCam library
 
 
 Requirements
@@ -122,5 +122,5 @@ License
 **HAPPY CODING ^_^**
 
 [sample]:https://github.com/krazykira/CuXtomCam-App
-[this Google Glass Glassware]:https://glass.google.com/glassware/18006467403015279235
+[Google Glass Glassware]:https://glass.google.com/glassware/18006467403015279235
 
