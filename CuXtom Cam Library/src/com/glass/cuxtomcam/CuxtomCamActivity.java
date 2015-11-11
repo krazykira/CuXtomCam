@@ -70,9 +70,10 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	private boolean hasMultipleVideoFiles = false;
 
 	/*
-	 * This is the Maximum Allowed video duration in Seconds
+	 * This is the Maximum Allowed video duration in Seconds. For now its 22
+	 * minutes as that amounts to a video having size < 2GB
 	 */
-	private int maxAllowedVideoDuration = 1 * 60;
+	private int maxAllowedVideoDuration = 21 * 60;
 	// *****************************
 	// these values are set by the calling activity
 	// *****************************
@@ -563,7 +564,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 					recorder.prepare();
 					recorder.start();
 					mOverlay.setMode(Mode.RECORDING);
-
+					totalVideoDuration = (totalVideoDuration / 60) * 60;
 				} catch (Exception e) {
 					if (e != null && e.getMessage() != null)
 						Log.e("Error Starting CuXtom Camera for video recording",
@@ -634,11 +635,8 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 						}
 
 					}
-//					mCamera.stopPreview();
-//					mCamera.unlock();
-					totalVideoDuration = video_duration
-							/ maxAllowedVideoDuration;
-					
+					mCamera.stopPreview();
+					mCamera.unlock();
 					if (video_duration < maxAllowedVideoDuration)
 						startMultipleVideoRecorder(video_duration);
 					else {
@@ -738,7 +736,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 
 				}
 			}).start();
-			;
 		}
 
 	}
