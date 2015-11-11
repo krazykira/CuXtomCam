@@ -4,26 +4,31 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
 import android.media.MediaRecorder.OnErrorListener;
-import android.media.MediaScannerConnection;
 import android.media.MediaRecorder.OnInfoListener;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
-import android.app.Activity;
-import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -32,18 +37,25 @@ import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.TextView;
 
+import com.coremedia.iso.boxes.Container;
 import com.glass.cuxtomcam.CameraOverlay.Mode;
+import com.glass.cuxtomcam.VideoMerger.OnVideoListener;
 import com.glass.cuxtomcam.constants.CuxtomIntent;
 import com.glass.cuxtomcam.constants.CuxtomIntent.CAMERA_MODE;
 import com.glass.cuxtomcam.constants.CuxtomIntent.FILE_TYPE;
 import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
 import com.google.android.glass.touchpad.GestureDetector.BaseListener;
+import com.googlecode.mp4parser.authoring.Movie;
+import com.googlecode.mp4parser.authoring.Track;
+import com.googlecode.mp4parser.authoring.builder.DefaultMp4Builder;
+import com.googlecode.mp4parser.authoring.container.mp4.MovieCreator;
+import com.googlecode.mp4parser.authoring.tracks.AppendTrack;
 
 public class CuxtomCamActivity extends Activity implements BaseListener,
 		CameraListener, MediaScannerConnection.OnScanCompletedListener {
 
-	private final String TAG = "CAMERA ACTIVITY";
+	private final String TAG = "CuXtom Cam ACTIVITY";
 	private final int KEY_SWIPE_DOWN = 4;
 	private Camera mCamera;
 	private CameraPreview mPreview;
@@ -51,9 +63,16 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	private GestureDetector mGestureDetector;
 	private MediaRecorder recorder;
 	private TextView tv_recordingDuration;
-	private int recordingDuration;
+	private int totalVideoDuration;
 	private ScheduledExecutorService mExecutorService;
+	// For multiple Video Files
+	private ArrayList<File> videoFiles;
+	private boolean hasMultipleVideoFiles = false;
 
+	/*
+	 * This is the Maximum Allowed video duration in Seconds
+	 */
+	private int maxAllowedVideoDuration = 1 * 60;
 	// *****************************
 	// these values are set by the calling activity
 	// *****************************
@@ -69,14 +88,13 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	private File videofile;
 	private CameraOverlay mOverlay;
 	private SoundEffectPlayer mSoundEffects;
-	private final String tag = "CuxTomCam";
 	private Runnable recordingTimer = new Runnable() {
 
 		@Override
 		public synchronized void run() {
-			recordingDuration++;
-			final int seconds = recordingDuration % 60;
-			final int minutes = recordingDuration / 60;
+			totalVideoDuration++;
+			final int seconds = totalVideoDuration % 60;
+			final int minutes = totalVideoDuration / 60;
 
 			if (seconds < 10) {
 				if (minutes < 10) {
@@ -139,19 +157,14 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		Log.e(tag, "Oncreate()");
+		Log.e(TAG, "Oncreate()");
 		mSoundEffects = new SoundEffectPlayer();
 		mSoundEffects.setup(this);
 		loadExtras(getIntent());
-		Log.e(tag, "Loading extras completed");
+		Log.e(TAG, "Loading extras completed");
 		loadUI();
-		Log.e(tag, "Loading UI completed");
+		Log.e(TAG, "Loading UI completed");
 
-	}
-
-	@Override
-	protected void onResume() {
-		super.onResume();
 	}
 
 	@Override
@@ -256,7 +269,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	/**
 	 * initialize video recording UI with timer
 	 */
-	private void initVideoRecordingUI() {
+	private void initVideoRecordingUI(String initializeTime) {
 		LayoutParams rl_param = new LayoutParams(
 				android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
 				android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -264,12 +277,12 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		rl_param.addRule(RelativeLayout.CENTER_HORIZONTAL);
 		rl_param.addRule(RelativeLayout.ALIGN_BOTTOM, mPreview.getId());
 		rl_param.setMargins(0, 0, 0, 30);
-		tv_recordingDuration.setText("00:00");
+		tv_recordingDuration.setText(initializeTime);
 		tv_recordingDuration.setTextSize(28);
 		tv_recordingDuration.setLayoutParams(rl_param);
 		previewCameraLayout.addView(tv_recordingDuration);
 		mExecutorService = Executors.newSingleThreadScheduledExecutor();
-		recordingDuration = 0;
+		totalVideoDuration = 0;
 		mExecutorService.scheduleAtFixedRate(recordingTimer, 1, 1,
 				TimeUnit.SECONDS);
 	}
@@ -326,34 +339,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	}
 
 	/**
-	 * Stop video recording
-	 */
-	private void endVideoRecording() {
-		runOnUiThread(new Runnable() {
-
-			@Override
-			public void run() {
-				releaseMediaRecorder();
-				mSoundEffects.camcorderStop();
-				mExecutorService.shutdown();
-				mOverlay.setMode(Mode.PLAIN);
-				Intent intent = new Intent();
-				intent.putExtra(CuxtomIntent.FILE_PATH, videofile.getPath());
-				intent.putExtra(CuxtomIntent.FILE_TYPE, FILE_TYPE.VIDEO);
-				setResult(RESULT_OK, intent);
-				/*
-				 * initiate media scan and put the new things into the path
-				 * array to make the scanner aware of the location and the files
-				 * you want to see
-				 */MediaScannerConnection.scanFile(getApplicationContext(),
-						new String[] { videofile.getPath() }, null,
-						CuxtomCamActivity.this);
-
-			}
-		});
-	}
-
-	/**
 	 * Ignore any key that is pressed. Just handle camera key
 	 */
 	@Override
@@ -389,12 +374,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 			super.onKeyUp(keyCode, event);
 		}
 		return false;
-	}
-
-	@Override
-	protected void onPause() {
-
-		super.onPause();
 	}
 
 	/**
@@ -443,31 +422,31 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	};
 
 	/**
-	 * Start video recording by cleaning the old camera preview
+	 * Initialize Video Recorder and start configuring recorder for single or
+	 * Multiple files
 	 */
-	private void startVideoRecorder() {
-		// THIS IS NEEDED BECAUSE THE GLASS CURRENTLY THROWS AN ERROR OF
-		// "MediaRecorder start failed: -19"
-		// THIS WONT BE NEEDED INCASE OF PHONE AND TABLET
-		// This causes crash in glass kitkat version so remove it
-		// try {
-		// mCamera.setPreviewDisplay(null);
-		// } catch (java.io.IOException ioe) {
-		// Log.d(TAG,
-		// "IOException nullifying preview display: "
-		// + ioe.getMessage());
-		// }
-		// mCamera.stopPreview();
-		// mCamera.unlock();
+	private void initVideoRecorder() {
 		recorder = new MediaRecorder();
-		// Let's initRecorder so we can record again
-		initRecorder();
+		// Let's initRecorder
+		if (video_duration > maxAllowedVideoDuration) {
+			// Configure Multiple Video Files Recorder
+			videoFiles = new ArrayList<File>();
+			int remainingVideoDuration = video_duration
+					- maxAllowedVideoDuration;
+			// Video Duration that is left to be recorded
+			video_duration = remainingVideoDuration;
+			startMultipleVideoRecorder(maxAllowedVideoDuration);
+			hasMultipleVideoFiles = true;
+		} else
+			// Configure Single Video Files Recorder
+			startSingleVideoRecorder();
 	}
 
 	/**
-	 * Initialize video recorder to record video
+	 * Configure video recorder to record a single video file. There will be no
+	 * need to merge this file.
 	 */
-	private void initRecorder() {
+	private void startSingleVideoRecorder() {
 
 		File dir = new File(folderPath);
 		if (!dir.exists()) {
@@ -477,11 +456,11 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		recorder.setCamera(mCamera);
 
 		// Step 2: Set sources
-		recorder.setAudioSource(MediaRecorder.AudioSource.DEFAULT);
-		recorder.setVideoSource(MediaRecorder.VideoSource.DEFAULT);
+		recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+		recorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
 
 		// Step 3: Set a CamcorderProfile (requires API Level 8 or higher)
-		recorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_LOW));
+		recorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH));
 		// Step 4: Set output file
 		recorder.setOutputFile(videofile.getAbsolutePath());
 		// Step 5: Set the preview output
@@ -529,6 +508,191 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 
 	}
 
+	/**
+	 * Configure video recorder Start recording videos that will be merged later
+	 * onwards, once all videos have been recorded
+	 */
+	private void startMultipleVideoRecorder(int currentRecordingDuration) {
+
+		File dir = new File(folderPath);
+		if (!dir.exists()) {
+			dir.mkdirs();
+		}
+		File vFile = new File(dir, System.currentTimeMillis() + ".mp4");
+		videoFiles.add(vFile);
+		recorder.setCamera(mCamera);
+
+		// Step 2: Set sources
+		recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+		recorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+
+		// Step 3: Set a CamcorderProfile (requires API Level 8 or higher)
+		recorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH));
+		// Step 4: Set output file
+		recorder.setOutputFile(vFile.getAbsolutePath());
+		// Step 5: Set the preview output
+		recorder.setPreviewDisplay(mPreview.getHolder().getSurface());
+		// Step 6: Prepare configured MediaRecorder
+		recorder.setMaxDuration(currentRecordingDuration * 1000);
+		recorder.setMaxFileSize(-1);
+		recorder.setOnErrorListener(new OnErrorListener() {
+
+			@Override
+			public void onError(MediaRecorder mr, int what, int extra) {
+				Log.e("Error Recording", what + " Extra " + extra);
+
+			}
+		});
+		recorder.setOnInfoListener(new OnInfoListener() {
+
+			@Override
+			public void onInfo(MediaRecorder mr, int what, int extra) {
+				if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
+					resumeOrEndVideoRecording();
+				}
+
+			}
+		});
+		runOnUiThread(new Runnable() {
+
+			@Override
+			public void run() {
+
+				try {
+					mSoundEffects.camcorder();
+					recorder.prepare();
+					recorder.start();
+					mOverlay.setMode(Mode.RECORDING);
+
+				} catch (Exception e) {
+					if (e != null && e.getMessage() != null)
+						Log.e("Error Starting CuXtom Camera for video recording",
+								e.getMessage());
+				}
+
+			}
+		});
+
+	}
+
+	/**
+	 * End Video Recording, Refresh the Disk and End the activity
+	 */
+	private void endVideoRecording() {
+		runOnUiThread(new Runnable() {
+
+			@Override
+			public void run() {
+				if (hasMultipleVideoFiles) {
+					releaseMediaRecorder();
+					mSoundEffects.camcorderStop();
+					mExecutorService.shutdown();
+					mOverlay.setMode(Mode.PLAIN);
+					// Merge video files into 1 file
+					mergeVideoIntoOneFile();
+				} else {
+					releaseMediaRecorder();
+					mSoundEffects.camcorderStop();
+					mExecutorService.shutdown();
+					mOverlay.setMode(Mode.PLAIN);
+					Intent intent = new Intent();
+					intent.putExtra(CuxtomIntent.FILE_PATH, videofile.getPath());
+					intent.putExtra(CuxtomIntent.FILE_TYPE, FILE_TYPE.VIDEO);
+					setResult(RESULT_OK, intent);
+					/*
+					 * initiate media scan and put the new things into the path
+					 * array to make the scanner aware of the location and the
+					 * files you want to see
+					 */MediaScannerConnection.scanFile(getApplicationContext(),
+							new String[] { videofile.getPath() }, null,
+							CuxtomCamActivity.this);
+				}
+
+			}
+		});
+	}
+
+	/**
+	 * Resume or End video recording depending upon whether the video has been
+	 * recorded for the whole duration or not
+	 */
+	private void resumeOrEndVideoRecording() {
+		runOnUiThread(new Runnable() {
+
+			@Override
+			public void run() {
+				// The Whole video has been recorded successfully
+				if (video_duration <= 0)
+					endVideoRecording();
+				else {
+					if (recorder != null) {
+						try {
+							recorder.stop();
+							recorder.reset();
+						} catch (Exception e) {
+							Log.e("error stopping", e.getMessage());
+						}
+
+					}
+//					mCamera.stopPreview();
+//					mCamera.unlock();
+					totalVideoDuration = video_duration
+							/ maxAllowedVideoDuration;
+					
+					if (video_duration < maxAllowedVideoDuration)
+						startMultipleVideoRecorder(video_duration);
+					else {
+						int remainingVideoDuration = video_duration
+								- maxAllowedVideoDuration;
+						// Video Duration that is left to be recorded
+						video_duration = remainingVideoDuration;
+						// Start recording the another video file
+						startMultipleVideoRecorder(maxAllowedVideoDuration);
+					}
+				}
+			}
+		});
+
+	}
+
+	/**
+	 * Start merging the video files
+	 */
+	private void mergeVideoIntoOneFile() {
+		previewCameraLayout.removeAllViews();
+		File dir = new File(folderPath);
+		if (!dir.exists()) {
+			dir.mkdirs();
+		}
+		videofile = new File(dir, fileName + ".mp4");
+		VideoMerger videoMerger = new VideoMerger(CuxtomCamActivity.this,
+				videoFiles, videofile);
+		videoMerger.setVideoMergeListener(new OnVideoListener() {
+
+			@Override
+			public void onVideoMerged() {
+				Intent intent = new Intent();
+				intent.putExtra(CuxtomIntent.FILE_PATH, videofile.getPath());
+				intent.putExtra(CuxtomIntent.FILE_TYPE, FILE_TYPE.VIDEO);
+				setResult(RESULT_OK, intent);
+				/*
+				 * initiate media scan and put the new things into the path
+				 * array to make the scanner aware of the location and the files
+				 * you want to see
+				 */MediaScannerConnection.scanFile(getApplicationContext(),
+						new String[] { videofile.getPath() }, null,
+						CuxtomCamActivity.this);
+			}
+
+			@Override
+			public void onVideoMergeFailed(Exception e) {
+				// TODO Auto-generated method stub
+
+			}
+		});
+		videoMerger.execute();
+	}
+
 	private void releaseMediaRecorder() {
 		if (recorder != null) {
 			try {
@@ -551,24 +715,24 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 
 	@Override
 	public synchronized void onCameraInit() {
-		Log.e(tag, "onCameraInit");
+		Log.e(TAG, "onCameraInit");
 		if (cameraMode == CAMERA_MODE.VIDEO_MODE) {
-			Log.e(tag, "As VIDEO_MODE");
+			Log.e(TAG, "As VIDEO_MODE");
 			new Thread(new Runnable() {
 
 				@Override
 				public void run() {
-					Log.e(tag, "Running runOnUiThread");
+					Log.e(TAG, "Running runOnUiThread");
 					mCamera.stopPreview();
 					mCamera.unlock();
-					startVideoRecorder();
-					Log.e(tag, "Start recorder");
+					initVideoRecorder();
+					Log.e(TAG, "Start recorder");
 					runOnUiThread(new Runnable() {
 
 						@Override
 						public void run() {
-							initVideoRecordingUI();
-							Log.e(tag, "Recorder Started");
+							initVideoRecordingUI("00:00");
+							Log.e(TAG, "Recorder Started");
 						}
 					});
 
@@ -584,7 +748,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 		tv_recordingDuration.removeCallbacks(recordingTimer);
 		// previewCameraLayout.removeAllViewsInLayout();
 		CuxtomCamActivity.this.finish();
-		Log.e(tag, "Ended");
+		Log.e(TAG, "Activity Ended");
 	}
 
 }
