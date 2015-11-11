@@ -67,7 +67,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	private ScheduledExecutorService mExecutorService;
 	// For multiple Video Files
 	private ArrayList<File> videoFiles;
-	private boolean hasMultipleVideoFiles = false;
 
 	/*
 	 * This is the Maximum Allowed video duration in Seconds. For now its 22
@@ -171,6 +170,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	@Override
 	protected void onDestroy() {
 		mSoundEffects.deconstruct();
+		System.gc();
 		super.onDestroy();
 	}
 
@@ -437,7 +437,6 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 			// Video Duration that is left to be recorded
 			video_duration = remainingVideoDuration;
 			startMultipleVideoRecorder(maxAllowedVideoDuration);
-			hasMultipleVideoFiles = true;
 		} else
 			// Configure Single Video Files Recorder
 			startSingleVideoRecorder();
@@ -584,7 +583,8 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 
 			@Override
 			public void run() {
-				if (hasMultipleVideoFiles) {
+				// if there are More than 1 Video Files
+				if (videoFiles != null && videoFiles.size() > 1) {
 					releaseMediaRecorder();
 					mSoundEffects.camcorderStop();
 					mExecutorService.shutdown();
@@ -592,6 +592,23 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 					// Merge video files into 1 file
 					mergeVideoIntoOneFile();
 				} else {
+					// If only 1 file was recorded in Multiple Video Recording
+					// Mode. Then there is no Need to merge the video file. Just
+					// rename it to FileName that was sent by calling activity
+					if (videoFiles != null && videoFiles.size() == 1) {
+						File tempFile = videoFiles.get(0);
+						// Make a directory with the path that was sent by
+						// Calling Activity
+						File dir = new File(folderPath);
+						if (!dir.exists())
+							dir.mkdirs();
+						// Rename File to the File Name that was sent by
+						// calling activity
+						videofile = new File(dir, fileName + ".mp4");
+						tempFile.renameTo(videofile);
+
+					}
+
 					releaseMediaRecorder();
 					mSoundEffects.camcorderStop();
 					mExecutorService.shutdown();
