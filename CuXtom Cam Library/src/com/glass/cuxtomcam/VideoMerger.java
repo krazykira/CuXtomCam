@@ -12,6 +12,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
 import android.os.AsyncTask;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
@@ -39,6 +40,7 @@ class VideoMerger extends AsyncTask<Void, Integer, Void> {
 	private Dialog progressDialog;
 	private Context context;
 	private TextView tv_loadingMessage;
+	private long finalVideoFileSize;
 
 	public VideoMerger(Context context, ArrayList<File> videoFiles,
 			File finalVideoFile) {
@@ -85,9 +87,7 @@ class VideoMerger extends AsyncTask<Void, Integer, Void> {
 			for (int i = 0; i < videoFiles.size(); i++) {
 				movies.add(MovieCreator.build(videoFiles.get(i)
 						.getAbsolutePath()));
-				publishProgress(i / videoFiles.size() * 10);
 			}
-			publishProgress(30);
 			for (Movie m : movies) {
 				for (Track t : m.getTracks()) {
 					if (t.getHandler().equals("soun")) {
@@ -98,7 +98,6 @@ class VideoMerger extends AsyncTask<Void, Integer, Void> {
 					}
 				}
 			}
-			publishProgress(60);
 
 			Movie finalMovie = new Movie();
 
@@ -110,14 +109,46 @@ class VideoMerger extends AsyncTask<Void, Integer, Void> {
 				finalMovie.addTrack(new AppendTrack(videoTracks
 						.toArray(new Track[videoTracks.size()])));
 			}
-			publishProgress(80);
 
 			Container out = new DefaultMp4Builder().build(finalMovie);
 
 			FileChannel fc = new RandomAccessFile(finalVideoFile, "rw")
 					.getChannel();
+			for (int i = 0; i < out.getBoxes().size(); i++) {
+				finalVideoFileSize += out.getBoxes().get(i).getSize();
+			}
+			Thread t=new Thread(new Runnable() {
+
+				@Override
+				public void run() {
+
+					Log.e("VideoMerge", "Started");
+					long currentFileSize = 0;
+					if (finalVideoFile.exists())
+						currentFileSize = finalVideoFile.length();
+					while (finalVideoFileSize != currentFileSize) {
+						try {
+							Thread.sleep(5000);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+						if (finalVideoFile.exists()) {
+							currentFileSize = finalVideoFile.length();
+							Log.e("VideoMerge", "Total: " + finalVideoFileSize
+									+ " current: " + currentFileSize);
+							int progress = (int) (currentFileSize * 100 / finalVideoFileSize);
+							publishProgress(progress);
+						}
+
+					}
+					Log.e("VideoMerge", "Ended");
+
+				}
+			});
+			t.start();
+
 			out.writeContainer(fc);
-			publishProgress(90);
+			t.stop();
 			fc.close();
 			for (int i = 0; i < videoFiles.size(); i++) {
 				videoFiles.get(i).delete();

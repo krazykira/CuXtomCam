@@ -36,6 +36,7 @@ import android.view.WindowManager;
 import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.coremedia.iso.boxes.Container;
 import com.glass.cuxtomcam.CameraOverlay.Mode;
@@ -332,6 +333,15 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 				mPreview.zoomOut();
 			return true;
 		case SWIPE_DOWN:
+			releaseMediaRecorder();
+			mSoundEffects.camcorderStop();
+			mExecutorService.shutdown();
+			Toast.makeText(CuxtomCamActivity.this, "Cancelled", Toast.LENGTH_LONG)
+					.show();
+			for (int i = 0; i < videoFiles.size(); i++) {
+				if(videoFiles.get(0).exists())
+				videoFiles.get(i).delete();
+			}
 			onBackPressed();
 			return true;
 		default:
@@ -501,6 +511,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 					if (e != null && e.getMessage() != null)
 						Log.e("Error Starting CuXtom Camera for video recording",
 								e.getMessage());
+					endVideoRecording();
 				}
 
 			}
@@ -568,6 +579,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 					if (e != null && e.getMessage() != null)
 						Log.e("Error Starting CuXtom Camera for video recording",
 								e.getMessage());
+					endVideoRecording();
 				}
 
 			}
