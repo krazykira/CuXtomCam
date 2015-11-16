@@ -70,7 +70,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 	private ArrayList<File> videoFiles;
 
 	/*
-	 * This is the Maximum Allowed video duration in Seconds. For now its 22
+	 * This is the Maximum Allowed video duration in Seconds. For now its 21
 	 * minutes as that amounts to a video having size < 2GB
 	 */
 	private int maxAllowedVideoDuration = 21 * 60;
@@ -713,7 +713,7 @@ public class CuxtomCamActivity extends Activity implements BaseListener,
 
 			@Override
 			public void onVideoMergeFailed(Exception e) {
-				// TODO Auto-generated method stub
+				Log.e("Error", e.getMessage());
 
 			}
 		});

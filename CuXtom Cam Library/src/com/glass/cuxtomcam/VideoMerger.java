@@ -41,6 +41,8 @@ class VideoMerger extends AsyncTask<Void, Integer, Void> {
 	private Context context;
 	private TextView tv_loadingMessage;
 	private long finalVideoFileSize;
+	// Whether the thread that is checking file size is running or not
+	private boolean fileSizeCheckerThread;
 
 	public VideoMerger(Context context, ArrayList<File> videoFiles,
 			File finalVideoFile) {
@@ -117,16 +119,16 @@ class VideoMerger extends AsyncTask<Void, Integer, Void> {
 			for (int i = 0; i < out.getBoxes().size(); i++) {
 				finalVideoFileSize += out.getBoxes().get(i).getSize();
 			}
-			Thread t=new Thread(new Runnable() {
+			Thread t = new Thread(new Runnable() {
 
 				@Override
 				public void run() {
-
+					fileSizeCheckerThread = true;
 					Log.e("VideoMerge", "Started");
 					long currentFileSize = 0;
 					if (finalVideoFile.exists())
 						currentFileSize = finalVideoFile.length();
-					while (finalVideoFileSize != currentFileSize) {
+					while (currentFileSize < finalVideoFileSize) {
 						try {
 							Thread.sleep(5000);
 						} catch (InterruptedException e) {
@@ -139,8 +141,11 @@ class VideoMerger extends AsyncTask<Void, Integer, Void> {
 							int progress = (int) (currentFileSize * 100 / finalVideoFileSize);
 							publishProgress(progress);
 						}
+						if (currentFileSize >= finalVideoFileSize)
+							break;
 
 					}
+					fileSizeCheckerThread = false;
 					Log.e("VideoMerge", "Ended");
 
 				}
@@ -148,12 +153,13 @@ class VideoMerger extends AsyncTask<Void, Integer, Void> {
 			t.start();
 
 			out.writeContainer(fc);
-			t.stop();
 			fc.close();
 			for (int i = 0; i < videoFiles.size(); i++) {
 				videoFiles.get(i).delete();
 			}
 			publishProgress(100);
+			if (fileSizeCheckerThread)
+				Thread.sleep(5000);
 
 		} catch (Exception e) {
 			exception = e;
