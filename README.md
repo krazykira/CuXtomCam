@@ -1,5 +1,6 @@
 CuXtomCam
 =========
+[![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-CuXtomCam-brightgreen.svg?style=flat-square)](http://android-arsenal.com/details/1/4085)
 
 An open source camera for google glass. This is a an alternative to the default camera on Glass. CuXtom Cam provides you the default behaviour along with some special feature..
 
